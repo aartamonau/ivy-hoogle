@@ -1,6 +1,5 @@
 (require 'async)
 (require 'cl-lib)
-(require 'haskell-font-lock)
 (require 'seq)
 
 (defgroup ivy-hoogle-appearance nil
@@ -14,14 +13,20 @@
   "TODO"
   :type 'integer)
 
-(defface ivy-hoogle-candidate-type-face
-  '((t :inherit haskell-keyword-face))
-  "Face used to highlight the candidate type (package, module, etc.)"
+(defcustom ivy-hoogle-use-haskell-fontify t
+  "When non-nil, use haskell-mode fontification to display candidates"
+  :type 'boolean)
+
+(defface ivy-hoogle-candidate-source-face
+  '((t :inherit shadow))
+  "Face used to display the candidate source (package and module if
+available)"
   :group 'ivy-hoogle-appearance)
 
-(defface ivy-hoogle-candidate-name-face
-  '((t :inherit haskell-type-face))
-  "Face used to highlight the candidate name"
+(defface ivy-hoogle-candidate-face
+  '((t :inherit default))
+  "Face used to display the candidate when
+`ivy-hoogle-use-haskell-fontify' is not `t'"
   :group 'ivy-hoogle-appearance)
 
 (ivy-configure 'ivy-hoogle
@@ -143,12 +148,15 @@
          (min-spaces 4)
          (width-remaining (- width (length item))))
     (apply #'concat
-           (haskell-fontify-as-mode item 'haskell-mode)
+           (if (not ivy-hoogle-use-haskell-fontify)
+               (ivy--add-face item 'ivy-hoogle-candidate-face)
+             (require 'haskell-font-lock)
+             (haskell-fontify-as-mode item 'haskell-mode))
            (let* ((short (ivy-hoogle--shorten sources (- width-remaining min-spaces)))
                   (num-spaces (- width-remaining (length short))))
              (unless (string-empty-p short)
                (list (make-string num-spaces ?\ )
-                     (ivy--add-face short 'shadow)))))))
+                     (ivy--add-face short 'ivy-hoogle-candidate-source-face)))))))
 
 (defun ivy-hoogle--format-candidates (candidates)
   (let ((width (window-width)))
