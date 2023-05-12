@@ -29,9 +29,6 @@ available)"
 `ivy-hoogle-use-haskell-fontify' is not `t'"
   :group 'ivy-hoogle-appearance)
 
-(ivy-configure 'ivy-hoogle
-  :format-fn #'ivy-hoogle--format-function)
-
 (cl-defstruct ivy-hoogle-source
   url
   package
@@ -95,18 +92,6 @@ available)"
     (setf (ivy-hoogle-candidate-sources candidate) sources)
     candidate))
 
-(ivy-hoogle--format-candidates
- (list
-  (ivy-hoogle--merge-candidates
-   (list (make-ivy-hoogle-candidate
-          :item "foldl :: Foldable t => (b -> a -> b) -> b -> t a -> b"
-          :doc-html "foldl"
-          :sources (list (make-ivy-hoogle-source :url "url1" :package "base" :module "Prelude")))
-         (make-ivy-hoogle-candidate
-          :item "foldl :: Foldable t => (b -> a -> b) -> b -> t a -> b"
-          :doc-html "foldl"
-          :sources (list (make-ivy-hoogle-source :url "url2" :package "base" :module "Data.List")))))))
-
 (defun ivy-hoogle--group-candidates (candidates)
   (let* ((key-fn (lambda (candidate)
                    (cons (ivy-hoogle-candidate-item candidate)
@@ -114,20 +99,6 @@ available)"
          (groups (ivy-hoogle--group-by candidates key-fn)))
     (cl-loop for (_ . group) in groups
              collect (ivy-hoogle--merge-candidates group))))
-
-(ivy-hoogle--group-candidates
- (list (make-ivy-hoogle-candidate
-        :item "foldl :: Foldable t => (b -> a -> b) -> b -> t a -> b"
-        :doc-html "foldl"
-        :sources (list (make-ivy-hoogle-source :url "url1" :package "base" :module "Prelude")))
-       (make-ivy-hoogle-candidate
-        :item "foldl :: Foldable t => (b -> a -> b) -> b -> t a -> b"
-        :doc-html "foldl"
-        :sources (list (make-ivy-hoogle-source :url "url2" :package "base" :module "Data.List")))
-       (make-ivy-hoogle-candidate
-        :item "foldl :: (b -> a -> b) -> b -> [a] -> b"
-        :doc-html "foldl for lists"
-        :sources (list (make-ivy-hoogle-source :url "url3" :package "xmonad" :module "XMonad.Core")))))
 
 (defun ivy-hoogle--set-candidates (candidates)
   ;; TODO: how do I avoid using an internal variable
@@ -140,34 +111,40 @@ available)"
   (let ((len (length str)))
     (cond ((>= width len) str)
           ((< width 10) "")
-          (t (concat (substring str 0 (- width 3)) "...")))))
+          (t (concat (substring str 0 (- width 1)) "…")))))
+
+(defun ivy-hoogle--display-candidate (candidate)
+  (if (stringp candidate)
+      candidate
+    (unless (ivy-hoogle-candidate-formatted candidate)
+      (let* ((item (ivy-hoogle-candidate-item candidate))
+             (sources (ivy-hoogle--format-sources (ivy-hoogle-candidate-sources candidate)))
+             (formatted (if (not ivy-hoogle-use-haskell-fontify)
+                            (ivy--add-face item 'ivy-hoogle-candidate-face)
+                          (require 'haskell-font-lock)
+                          (haskell-fontify-as-mode item 'haskell-mode))))
+        (put-text-property 0 1 'sources sources formatted)
+        (setf (ivy-hoogle-candidate-formatted candidate) formatted)))
+    (copy-sequence (ivy-hoogle-candidate-formatted candidate))))
 
 (defun ivy-hoogle--format-candidate (width candidate)
-  (let* ((item (ivy-hoogle-candidate-item candidate))
-         (sources (ivy-hoogle--format-sources (ivy-hoogle-candidate-sources candidate)))
-         (min-spaces 4)
-         (width-remaining (- width (length item))))
-    (apply #'concat
-           (if (not ivy-hoogle-use-haskell-fontify)
-               (ivy--add-face item 'ivy-hoogle-candidate-face)
-             (require 'haskell-font-lock)
-             (haskell-fontify-as-mode item 'haskell-mode))
-           (let* ((short (ivy-hoogle--shorten sources (- width-remaining min-spaces)))
-                  (num-spaces (- width-remaining (length short))))
-             (unless (string-empty-p short)
-               (list (make-string num-spaces ?\ )
-                     (ivy--add-face short 'ivy-hoogle-candidate-source-face)))))))
+  (let ((sources (get-text-property 0 'sources candidate)))
+    (if (null sources)
+        candidate
+      (let* ((min-spaces 4)
+             (width-remaining (- width (length candidate) min-spaces)))
+        (setq sources (ivy-hoogle--shorten sources width-remaining))
+        (if (string-empty-p sources)
+            candidate
+          (let ((num-spaces (+ (- width-remaining (length sources)) min-spaces)))
+            (concat candidate
+                    (make-string num-spaces ?\ )
+                    (ivy--add-face sources 'ivy-hoogle-candidate-source-face))))))))
 
 (defun ivy-hoogle--format-candidates (candidates)
   (let ((width (window-width)))
     (mapcar (lambda (candidate)
-              (cond ((stringp candidate) candidate)
-                    ((equal (ivy-hoogle-candidate-width candidate) width)
-                     (copy-sequence (ivy-hoogle-candidate-formatted candidate)))
-                    (t (let ((formatted (ivy-hoogle--format-candidate width candidate)))
-                         (setf (ivy-hoogle-candidate-formatted candidate) formatted
-                               (ivy-hoogle-candidate-width candidate) width)
-                         (copy-sequence formatted)))))
+              (ivy-hoogle--format-candidate width candidate))
             candidates)))
 
 (defun ivy-hoogle--format-function (candidates)
@@ -282,3 +259,8 @@ available)"
      :unwind 'ivy-hoogle--cleanup
      :history 'ivy-hoogle--history
      :caller 'ivy-hoogle)))
+
+(ivy-configure 'ivy-hoogle
+  :display-transformer-fn #'ivy-hoogle--display-candidate
+  :format-fn #'ivy-hoogle--format-function
+  )
