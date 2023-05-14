@@ -65,9 +65,6 @@ available)"
     (setf (ivy-hoogle-candidate-result item) result)
     item))
 
-(defun ivy-hoogle-candidate-no-result-p (candidate)
-  (null (ivy-hoogle-candidate-result candidate)))
-
 (defvar ivy-hoogle--timer nil)
 (defvar ivy-hoogle--history nil)
 (defvar ivy-hoogle--cache (make-hash-table :test 'equal))
@@ -287,11 +284,9 @@ available)"
      :history 'ivy-hoogle--history
      :caller 'ivy-hoogle)))
 
-;; TODO: ivy-occur crashes
-;; TODO: ivy-restrict-to-matches does not work
+;; TODO: ivy-occur does not fontify matches
 ;; TODO: bogus highlighting in the candidate list
-;; TODO: ivy-partial (TAB) crashes
-;; TODO: add ivy-hoogle--is-result-p or something, instead of using (not (stringp ..)) everywhere
+;; TODO: ivy-partial (TAB) simply inserts current line as completion
 (ivy-configure 'ivy-hoogle
   :display-transformer-fn #'ivy-hoogle--display-candidate
   :format-fn #'ivy-hoogle--format-function
