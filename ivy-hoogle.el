@@ -36,7 +36,7 @@ available)"
   module
   module-url)
 
-(cl-defstruct ivy-hoogle-candidate
+(cl-defstruct ivy-hoogle-result
   "TODO"
   item
   sources
@@ -44,6 +44,29 @@ available)"
 
   formatted
   width)
+
+(defmacro ivy-hoogle-define-candidate-properties (&rest names)
+  (let ((result (mapcan (lambda (name)
+                          (let ((fn-name (intern (concat "ivy-hoogle-candidate-" (symbol-name name)))))
+                            `((defun ,fn-name (candidate)
+                                (get-text-property 0 ',name candidate))
+
+                              (gv-define-setter ,fn-name (val x)
+                                `(let ((tmp ,val))
+                                   (progn (put-text-property 0 1 ',',name tmp ,x)
+                                          tmp))))))
+                        names)))
+    `(progn ,@result)))
+
+(ivy-hoogle-define-candidate-properties formatted result)
+
+(defun make-ivy-hoogle-candidate (result)
+  (let ((item (ivy-hoogle-result-item result)))
+    (setf (ivy-hoogle-candidate-result item) result)
+    item))
+
+(defun ivy-hoogle-candidate-no-result-p (candidate)
+  (null (ivy-hoogle-candidate-result candidate)))
 
 (defvar ivy-hoogle--timer nil)
 (defvar ivy-hoogle--history nil)
@@ -85,20 +108,20 @@ available)"
         (string-lessp module-a module-b)
       (string-lessp package-a package-b))))
 
-(defun ivy-hoogle--merge-candidates (candidates)
-  (let ((candidate (car candidates))
-        (sources (apply #'append (mapcar #'ivy-hoogle-candidate-sources candidates))))
+(defun ivy-hoogle--merge-results (results)
+  (let ((result (car results))
+        (sources (apply #'append (mapcar #'ivy-hoogle-result-sources results))))
     (setq sources (sort sources #'ivy-hoogle--source-lessp))
-    (setf (ivy-hoogle-candidate-sources candidate) sources)
-    candidate))
+    (setf (ivy-hoogle-result-sources result) sources)
+    result))
 
-(defun ivy-hoogle--group-candidates (candidates)
-  (let* ((key-fn (lambda (candidate)
-                   (cons (ivy-hoogle-candidate-item candidate)
-                         (ivy-hoogle-candidate-doc-html candidate))))
-         (groups (ivy-hoogle--group-by candidates key-fn)))
+(defun ivy-hoogle--group-results (results)
+  (let* ((key-fn (lambda (result)
+                   (cons (ivy-hoogle-result-item result)
+                         (ivy-hoogle-result-doc-html result))))
+         (groups (ivy-hoogle--group-by results key-fn)))
     (cl-loop for (_ . group) in groups
-             collect (ivy-hoogle--merge-candidates group))))
+             collect (ivy-hoogle--merge-results group))))
 
 (defun ivy-hoogle--set-candidates (candidates)
   ;; TODO: how do I avoid using an internal variable
@@ -114,18 +137,19 @@ available)"
           (t (concat (substring str 0 (- width 1)) "…")))))
 
 (defun ivy-hoogle--display-candidate (candidate)
-  (if (stringp candidate)
-      candidate
-    (unless (ivy-hoogle-candidate-formatted candidate)
-      (let* ((item (ivy-hoogle-candidate-item candidate))
-             (sources (ivy-hoogle--format-sources (ivy-hoogle-candidate-sources candidate)))
-             (formatted (if (not ivy-hoogle-use-haskell-fontify)
-                            (ivy--add-face item 'ivy-hoogle-candidate-face)
-                          (require 'haskell-font-lock)
-                          (haskell-fontify-as-mode item 'haskell-mode))))
-        (put-text-property 0 1 'sources sources formatted)
-        (setf (ivy-hoogle-candidate-formatted candidate) formatted)))
-    (copy-sequence (ivy-hoogle-candidate-formatted candidate))))
+  (let ((result (ivy-hoogle-candidate-result candidate)))
+    (if (null result)
+        candidate
+      (unless (ivy-hoogle-candidate-formatted candidate)
+        (let* ((item (ivy-hoogle-result-item result))
+               (sources (ivy-hoogle--format-sources (ivy-hoogle-result-sources result)))
+               (formatted (if (not ivy-hoogle-use-haskell-fontify)
+                              (ivy--add-face item 'ivy-hoogle-candidate-face)
+                            (require 'haskell-font-lock)
+                            (haskell-fontify-as-mode item 'haskell-mode))))
+          (put-text-property 0 1 'sources sources formatted)
+          (setf (ivy-hoogle-candidate-formatted candidate) formatted)))
+      (copy-sequence (ivy-hoogle-candidate-formatted candidate)))))
 
 (defun ivy-hoogle--format-candidate (width candidate)
   (let ((sources (get-text-property 0 'sources candidate)))
@@ -155,7 +179,7 @@ available)"
      formatted
      "\n")))
 
-(defun ivy-hoogle--parse-item (line)
+(defun ivy-hoogle--parse-result (line)
   (let* ((parsed (json-parse-string line))
          (item (gethash "item" parsed))
          (url (gethash "url" parsed))
@@ -173,22 +197,25 @@ available)"
                      :module-url module-url
                      :package package
                      :package-url package-url)))
-      (make-ivy-hoogle-candidate
-       :item item
-       :doc-html doc-html
-       :sources (list source))))))
+        (make-ivy-hoogle-result
+         :item item
+         :doc-html doc-html
+         :sources (list source))))))
 
 (defun ivy-hoogle--on-finish (process)
   (let* ((output (with-current-buffer (process-buffer process) (buffer-string)))
          (lines (string-lines output t))
+         results
          candidates)
     (cl-loop for line in lines
              unless (or (string-prefix-p "--" line)
                         (string-prefix-p "No results found" line))
-             collect (ivy-hoogle--parse-item line) into results
-             finally (setq candidates (ivy-hoogle--group-candidates results)))
-    (unless candidates
-      (setq candidates (list "No results found")))
+             collect (ivy-hoogle--parse-result line) into raw-results
+             finally (setq results (ivy-hoogle--group-results raw-results)))
+    (setq candidates
+          (if (null results)
+              '("No results found")
+            (mapcar #'make-ivy-hoogle-candidate results)))
     (puthash ivy-hoogle--process-query candidates ivy-hoogle--cache)
     (ivy-hoogle--set-candidates candidates)
     (ivy-update-candidates candidates)
@@ -252,14 +279,19 @@ available)"
   (let ((ivy-dynamic-exhibit-delay-ms 0))
     (ivy-read
      "Hoogle: "
-     'ivy-hoogle--candidates
-     :action 'ivy-hoogle--action
+     #'ivy-hoogle--candidates
+     :action #'ivy-hoogle--action
      :dynamic-collection t
      :require-match t
-     :unwind 'ivy-hoogle--cleanup
+     :unwind #'ivy-hoogle--cleanup
      :history 'ivy-hoogle--history
      :caller 'ivy-hoogle)))
 
+;; TODO: ivy-occur crashes
+;; TODO: ivy-restrict-to-matches does not work
+;; TODO: bogus highlighting in the candidate list
+;; TODO: ivy-partial (TAB) crashes
+;; TODO: add ivy-hoogle--is-result-p or something, instead of using (not (stringp ..)) everywhere
 (ivy-configure 'ivy-hoogle
   :display-transformer-fn #'ivy-hoogle--display-candidate
   :format-fn #'ivy-hoogle--format-function
