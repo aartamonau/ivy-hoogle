@@ -268,6 +268,27 @@ available)"
         (ivy-hoogle--set-candidates candidates)
         candidates))))
 
+(defun ivy-hoogle--re-builder (str)
+  (ivy--regex-plus str))
+
+(defun ivy-hoogle--highlight-function (str)
+  ;; When ivy-restrict-to-matches is called, it resets dynamic-collection to
+  ;; false. This implementation detail is used to determine whether to
+  ;; highlight the matching bits in the output:
+  ;;
+  ;;   - when we are still in dynamic mode, don't highlight anything, since
+  ;;     there's not necessarily an obvious correspondence between the input
+  ;;     and the outputs
+  ;;
+  ;;   - once ivy-restrict-to-matches was called, we're back to pure
+  ;;     text-based matching, so highlighting is actually useful
+  ;;
+  ;; I could not find any other way to achieve this behavior but to rely on
+  ;; implementation details of ivy.
+  (if (ivy-state-dynamic-collection ivy-last)
+      str
+    (ivy--highlight-default str)))
+
 (defun ivy-hoogle--action (x)
   (message "%s" x))
 
@@ -285,9 +306,13 @@ available)"
      :caller 'ivy-hoogle)))
 
 ;; TODO: ivy-occur does not fontify matches
-;; TODO: bogus highlighting in the candidate list
 ;; TODO: ivy-partial (TAB) simply inserts current line as completion
 (ivy-configure 'ivy-hoogle
   :display-transformer-fn #'ivy-hoogle--display-candidate
   :format-fn #'ivy-hoogle--format-function
   )
+
+;; the highlight function can only be overridden by associating it with the
+;; regex building function directly
+(setf (alist-get 'ivy-hoogle ivy-re-builders-alist) #'ivy-hoogle--re-builder)
+(setf (alist-get #'ivy-hoogle--re-builder ivy-highlight-functions-alist) #'ivy-hoogle--highlight-function)
