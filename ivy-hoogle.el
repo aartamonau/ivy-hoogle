@@ -306,7 +306,6 @@ available)"
      :caller 'ivy-hoogle)))
 
 ;; TODO: ivy-occur does not fontify matches
-;; TODO: ivy-partial (TAB) simply inserts current line as completion
 (ivy-configure 'ivy-hoogle
   :display-transformer-fn #'ivy-hoogle--display-candidate
   :format-fn #'ivy-hoogle--format-function
