@@ -208,17 +208,14 @@ available)"
 (defun ivy-hoogle--on-finish (process)
   (let* ((output (with-current-buffer (process-buffer process) (buffer-string)))
          (lines (string-lines output t))
-         results
          candidates)
     (cl-loop for line in lines
              unless (or (string-prefix-p "--" line)
                         (string-prefix-p "No results found" line))
-             collect (ivy-hoogle--parse-result line) into raw-results
-             finally (setq results (ivy-hoogle--group-results raw-results)))
-    (setq candidates
-          (if (null results)
-              '("No results found")
-            (mapcar #'make-ivy-hoogle-candidate results)))
+             collect (ivy-hoogle--parse-result line) into results
+             finally (setq candidates
+                           (mapcar #'make-ivy-hoogle-candidate
+                                   (ivy-hoogle--group-results results))))
     (puthash ivy-hoogle--process-query candidates ivy-hoogle--cache)
     (ivy-hoogle--set-candidates candidates)
     (ivy-update-candidates candidates)
