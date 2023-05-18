@@ -133,6 +133,12 @@ available)"
           ((< width 10) "")
           (t (concat (substring str 0 (- width 1)) "…")))))
 
+(defun ivy-hoogle--display-candidate-set-sources (candidate sources)
+  (put-text-property 0 1 'sources sources candidate))
+
+(defun ivy-hoogle--display-candidate-get-sources (candidate)
+  (get-text-property 0 'sources candidate))
+
 (defun ivy-hoogle--display-candidate (candidate)
   (let ((result (ivy-hoogle-candidate-result candidate)))
     (if (null result)
@@ -144,12 +150,12 @@ available)"
                               (ivy--add-face item 'ivy-hoogle-candidate-face)
                             (require 'haskell-font-lock)
                             (haskell-fontify-as-mode item 'haskell-mode))))
-          (put-text-property 0 1 'sources sources formatted)
+          (ivy-hoogle--display-candidate-set-sources formatted sources)
           (setf (ivy-hoogle-candidate-formatted candidate) formatted)))
       (copy-sequence (ivy-hoogle-candidate-formatted candidate)))))
 
 (defun ivy-hoogle--format-candidate (width candidate)
-  (let ((sources (get-text-property 0 'sources candidate)))
+  (let ((sources (ivy-hoogle--display-candidate-get-sources candidate)))
     (if (null sources)
         candidate
       (let* ((min-spaces 4)
@@ -289,6 +295,28 @@ available)"
       str
     (ivy--highlight-default str)))
 
+;; TODO: reap old buffers
+(defun ivy-hoogle--occur-function (candidates)
+  (font-lock-mode -1)
+  (ivy-occur-mode)
+  (insert (format "%d candidates:\n" (length candidates)))
+  (cl-loop for candidate in candidates
+           do (let ((displayed (ivy-hoogle--display-candidate candidate)))
+                (add-text-properties
+                 0
+                 (length displayed)
+                 '(mouse-face
+                   highlight
+                   help-echo "mouse-1: call ivy-action")
+                 displayed)
+                (insert displayed ?\n)))
+
+  ;; go to the first match
+  (goto-char (point-min))
+  (forward-line 1)
+
+  (read-only-mode))
+
 (defun ivy-hoogle--action (x)
   (message "%s" x))
 
@@ -309,6 +337,7 @@ available)"
 (ivy-configure 'ivy-hoogle
   :display-transformer-fn #'ivy-hoogle--display-candidate
   :format-fn #'ivy-hoogle--format-function
+  :occur #'ivy-hoogle--occur-function
   )
 
 ;; the highlight function can only be overridden by associating it with the
