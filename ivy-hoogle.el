@@ -121,7 +121,10 @@ available)"
              collect (ivy-hoogle--merge-results group))))
 
 (defun ivy-hoogle--set-candidates (candidates)
-  ;; TODO: how do I avoid using an internal variable
+  ;; ivy does not update this variable for dynamic collections for some
+  ;; reason, so I need to cheat and do it myself
+  ;;
+  ;; otherwise things like ivy-resume and ivy-restrict-to-matches don't work
   (setq ivy--old-cands candidates))
 
 (defun ivy-hoogle--get-candidates nil
@@ -330,7 +333,6 @@ available)"
      :history 'ivy-hoogle--history
      :caller 'ivy-hoogle)))
 
-;; TODO: ivy-occur does not fontify matches
 (ivy-configure 'ivy-hoogle
   :display-transformer-fn #'ivy-hoogle--display-candidate
   :format-fn #'ivy-hoogle--format-function
