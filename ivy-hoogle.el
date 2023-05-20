@@ -70,6 +70,7 @@ available)"
 (defvar ivy-hoogle--cache (make-hash-table :test 'equal))
 (defvar ivy-hoogle--process-query nil)
 (defvar ivy-hoogle--process nil)
+(defvar ivy-hoogle--sync-candidates nil)
 
 (defun ivy-hoogle--group-by (elems key-fn)
   (let ((groups (make-hash-table :test #'equal))
@@ -208,17 +209,24 @@ available)"
          :doc-html doc-html
          :sources (list source))))))
 
-(defun ivy-hoogle--on-finish (process)
+(defun ivy-hoogle--process-args (query)
+  `("search"
+    "--count" ,(number-to-string ivy-hoogle-num-candidates)
+    "--jsonl"
+    ,query))
+
+(defun ivy-hoogle--process-read-candidates (process)
   (let* ((output (with-current-buffer (process-buffer process) (buffer-string)))
-         (lines (string-lines output t))
-         candidates)
+         (lines (string-lines output t)))
     (cl-loop for line in lines
              unless (or (string-prefix-p "--" line)
                         (string-prefix-p "No results found" line))
              collect (ivy-hoogle--parse-result line) into results
-             finally (setq candidates
-                           (mapcar #'make-ivy-hoogle-candidate
-                                   (ivy-hoogle--group-results results))))
+             finally return (mapcar #'make-ivy-hoogle-candidate
+                                    (ivy-hoogle--group-results results)))))
+
+(defun ivy-hoogle--on-finish (process)
+  (let ((candidates (ivy-hoogle--process-read-candidates process)))
     (puthash ivy-hoogle--process-query candidates ivy-hoogle--cache)
     (ivy-hoogle--set-candidates candidates)
     (ivy-update-candidates candidates)
@@ -227,13 +235,28 @@ available)"
 (defun ivy-hoogle--start-hoogle (query)
   (ivy-hoogle--cleanup-timer)
   (ivy-hoogle--cleanup-process)
-  (let ((args `("search"
-                "--count" ,(number-to-string ivy-hoogle-num-candidates)
-                "--jsonl"
-                ,query)))
-    (setq ivy-hoogle--process-query query)
-    (setq ivy-hoogle--process
-          (apply 'async-start-process "hoogle" "hoogle" 'ivy-hoogle--on-finish args))))
+  (setq ivy-hoogle--process-query query)
+  (setq ivy-hoogle--process
+        (apply 'async-start-process
+               "hoogle"
+               "hoogle"
+               'ivy-hoogle--on-finish
+               (ivy-hoogle--process-args query))))
+
+(defun ivy-hoogle--call-hoogle-sync-set-candidates (process)
+  (let ((candidates (ivy-hoogle--process-read-candidates process)))
+    (setq ivy-hoogle--sync-candidates candidates)))
+
+(defun ivy-hoogle--call-hoogle-sync (query)
+  (let ((process (apply 'async-start-process
+                        "hoogle"
+                        "hoogle"
+                        #'ivy-hoogle--call-hoogle-sync-set-candidates
+                        (ivy-hoogle--process-args query))))
+    (async-wait process)
+    (delete-process process)
+    (kill-buffer (process-buffer process))
+    ivy-hoogle--sync-candidates))
 
 (defun ivy-hoogle--queue-update (query)
   (ivy-hoogle--cleanup-timer)
@@ -268,11 +291,16 @@ available)"
   (let ((query (string-trim query)))
     (if (equal query "")
         nil
-      (let ((candidates (or (ivy-hoogle--cached-candidates query)
-                            (progn (ivy-hoogle--queue-update query)
-                                   (ivy-hoogle--get-candidates)))))
-        (ivy-hoogle--set-candidates candidates)
-        candidates))))
+      (if ivy-occur-last
+          ;; we're called from occur mode, return the candidates
+          ;; synchronously, because asynchronous update only works with the
+          ;; minibuffer
+          (ivy-hoogle--call-hoogle-sync query)
+        (let ((candidates (or (ivy-hoogle--cached-candidates query)
+                              (progn (ivy-hoogle--queue-update query)
+                                     (ivy-hoogle--get-candidates)))))
+          (ivy-hoogle--set-candidates candidates)
+          candidates)))))
 
 (defun ivy-hoogle--re-builder (str)
   (ivy--regex-plus str))
