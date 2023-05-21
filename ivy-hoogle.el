@@ -40,10 +40,7 @@ available)"
   "TODO"
   item
   sources
-  doc-html
-
-  formatted
-  width)
+  doc-html)
 
 (defmacro ivy-hoogle-define-candidate-properties (&rest names)
   (let ((result (mapcan (lambda (name)
