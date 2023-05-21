@@ -323,7 +323,6 @@ available)"
       str
     (ivy--highlight-default str)))
 
-;; TODO: reap old buffers
 (defun ivy-hoogle--occur-function (candidates)
   (font-lock-mode -1)
   (ivy-occur-mode)
