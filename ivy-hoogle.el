@@ -396,6 +396,8 @@ available)"
      :history 'ivy-hoogle--history
      :caller 'ivy-hoogle)))
 
+;; TODO: back button in the help buffer does not work
+;; TODO: ivy-resume if non-candidate is selected?
 (ivy-configure 'ivy-hoogle
   :display-transformer-fn #'ivy-hoogle--display-candidate
   :format-fn #'ivy-hoogle--format-function
