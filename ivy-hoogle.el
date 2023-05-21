@@ -65,6 +65,9 @@ available)"
     (setf (ivy-hoogle-candidate-result item) result)
     item))
 
+(defun ivy-hoogle-candidate-p (candidate)
+  (not (null (ivy-hoogle-candidate-result candidate))))
+
 (defvar ivy-hoogle--timer nil)
 (defvar ivy-hoogle--history nil)
 (defvar ivy-hoogle--cache (make-hash-table :test 'equal))
@@ -226,7 +229,8 @@ available)"
                                     (ivy-hoogle--group-results results)))))
 
 (defun ivy-hoogle--on-finish (process)
-  (let ((candidates (ivy-hoogle--process-read-candidates process)))
+  (let ((candidates (or (ivy-hoogle--process-read-candidates process)
+                        (ivy-hoogle--no-results))))
     (puthash ivy-hoogle--process-query candidates ivy-hoogle--cache)
     (ivy-hoogle--set-candidates candidates)
     (ivy-update-candidates candidates)
@@ -290,17 +294,23 @@ available)"
 (defun ivy-hoogle--candidates (query)
   (let ((query (string-trim query)))
     (if (equal query "")
-        nil
+        (ivy-hoogle--no-results)
       (if ivy-occur-last
           ;; we're called from occur mode, return the candidates
           ;; synchronously, because asynchronous update only works with the
           ;; minibuffer
           (ivy-hoogle--call-hoogle-sync query)
-        (let ((candidates (or (ivy-hoogle--cached-candidates query)
-                              (progn (ivy-hoogle--queue-update query)
-                                     (ivy-hoogle--get-candidates)))))
-          (ivy-hoogle--set-candidates candidates)
-          candidates)))))
+        (let ((cached (ivy-hoogle--cached-candidates query)))
+          (if cached
+              cached
+            (ivy-hoogle--queue-update query)
+            (ivy-hoogle--updating)))))))
+
+(defun ivy-hoogle--updating nil
+  '("Updating…"))
+
+(defun ivy-hoogle--no-results nil
+  '("No results"))
 
 (defun ivy-hoogle--re-builder (str)
   (ivy--regex-plus str))
@@ -324,6 +334,8 @@ available)"
     (ivy--highlight-default str)))
 
 (defun ivy-hoogle--occur-function (candidates)
+  (setq candidates (cl-remove-if-not #'ivy-hoogle-candidate-p candidates))
+
   (font-lock-mode -1)
   (ivy-occur-mode)
   (insert (format "%d candidates:\n" (length candidates)))
