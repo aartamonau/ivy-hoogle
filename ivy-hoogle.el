@@ -100,19 +100,9 @@ available)"
              into result
              finally return (string-join result ", "))))
 
-(defun ivy-hoogle--source-lessp (source-a source-b)
-  (let ((package-a (ivy-hoogle-source-package source-a))
-        (package-b (ivy-hoogle-source-package source-b))
-        (module-a (ivy-hoogle-source-module source-a))
-        (module-b (ivy-hoogle-source-module source-b)))
-    (if (string-equal package-a package-b)
-        (string-lessp module-a module-b)
-      (string-lessp package-a package-b))))
-
 (defun ivy-hoogle--merge-results (results)
   (let ((result (car results))
         (sources (apply #'append (mapcar #'ivy-hoogle-result-sources results))))
-    (setq sources (sort sources #'ivy-hoogle--source-lessp))
     (setf (ivy-hoogle-result-sources result) sources)
     result))
 
