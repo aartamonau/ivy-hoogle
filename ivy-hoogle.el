@@ -93,7 +93,7 @@ available)"
 (defun ivy-hoogle--format-sources (sources)
   (let ((sources-by-package (ivy-hoogle--group-by sources #'ivy-hoogle-source-package)))
     (cl-loop for (package . package-sources) in sources-by-package
-             when (not (null package))
+             when package
              collect (let ((modules (mapcar #'ivy-hoogle-source-module package-sources)))
                        (setq modules (seq-remove #'null modules))
                        (string-join (cons package modules) " "))
