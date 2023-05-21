@@ -13,7 +13,7 @@
   "TODO"
   :type 'integer)
 
-(defcustom ivy-hoogle-use-haskell-fontify t
+(defcustom ivy-hoogle-use-haskell-fontify (featurep 'haskell-font-lock)
   "When non-nil, use haskell-mode fontification to display candidates"
   :type 'boolean)
 
