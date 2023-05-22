@@ -373,7 +373,13 @@ available)"
     (shr-render-region start (point))))
 
 (defun ivy-hoogle--action (candidate)
-  (when (ivy-hoogle-candidate-p candidate)
+  (if (not (ivy-hoogle-candidate-p candidate))
+      ;; if a non-candidate got selected, like the informational "Updating" or
+      ;; "No results", restart selection
+      ;;
+      ;; I wish I could just disallow selecting these fake candidates, but
+      ;; there doesn't seem to be a way to do that
+      (ivy-resume)
     (let* ((displayed (ivy-hoogle--display-candidate candidate))
            (sources (ivy-hoogle--display-candidate-get-sources displayed))
            (result (ivy-hoogle-candidate-result candidate)))
@@ -397,7 +403,6 @@ available)"
      :caller 'ivy-hoogle)))
 
 ;; TODO: back button in the help buffer does not work
-;; TODO: ivy-resume if non-candidate is selected?
 (ivy-configure 'ivy-hoogle
   :display-transformer-fn #'ivy-hoogle--display-candidate
   :format-fn #'ivy-hoogle--format-function
