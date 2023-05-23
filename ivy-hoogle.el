@@ -1,8 +1,9 @@
 (require 'async)
 (require 'cl-lib)
-(require 'seq)
-(require 'ivy)
 (require 'colir)
+(require 'font-lock)
+(require 'ivy)
+(require 'seq)
 
 (defgroup ivy-hoogle-appearance nil
   "Ivy Hoogle Appearance.")
@@ -29,6 +30,11 @@ available)"
   '((t :inherit default))
   "Face used to display the candidate when
 `ivy-hoogle-use-haskell-fontify' is not `t'"
+  :group 'ivy-hoogle-appearance)
+
+(defface ivy-hoogle-doc-code-face
+  '((t :inherit (fixed-pitch font-lock-function-name-face)))
+  "Face used to display code blocks in the documentation buffer"
   :group 'ivy-hoogle-appearance)
 
 (cl-defstruct ivy-hoogle-source
@@ -365,8 +371,7 @@ available)"
       (shr-tag-hr nil))
     (colir-blend-face-background start
                                  (point-max)
-                                 ;; TODO: different face
-                                 'ivy-hoogle-candidate-source-face)))
+                                 'ivy-hoogle-doc-code-face)))
 
 (defun ivy-hoogle--render-doc (result)
   (let ((shr-use-fonts nil)
