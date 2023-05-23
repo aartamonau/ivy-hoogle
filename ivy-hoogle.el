@@ -1,6 +1,8 @@
 (require 'async)
 (require 'cl-lib)
 (require 'seq)
+(require 'ivy)
+(require 'colir)
 
 (defgroup ivy-hoogle-appearance nil
   "Ivy Hoogle Appearance.")
@@ -343,22 +345,28 @@ available)"
 
   (read-only-mode))
 
-(defun ivy-hoogle--flush-empty-lines nil
-  (beginning-of-line)
-  (cl-loop while (looking-at "^\s*$")
-           do (let ((kill-whole-line t))
-                (if (= (point) (point-max))
-                    (delete-backward-char 1)
-                  (kill-line))
-                (beginning-of-line))))
-
 (defun ivy-hoogle--render-tag-pre (dom)
-  (let ((start (point)))
-    (shr-tag-pre dom)
-    (ivy-hoogle--flush-empty-lines)
-    (goto-char start)
-    (ivy-hoogle--flush-empty-lines)
-    (goto-char (point-max))))
+  (let ((start (point))
+        (inline (not (looking-at "^\s*$"))))
+    (if inline
+        ;; <pre> appears both as an inline tag and a block tag; in the former
+        ;; case, we don't want any new lines and separators inserted
+        ;;
+        ;; for now, assume that <pre> is inline if there's anything on the
+        ;; same line that precedes it;
+        ;;
+        ;; TODO: what if there's nothing before the tag, but there's something
+        ;; after it?
+        (shr-generic dom)
+      (shr-tag-hr nil)
+      (shr-tag-pre dom)
+      (flush-lines "^\s*$" start (point-max))
+      (goto-char (point-max))
+      (shr-tag-hr nil))
+    (colir-blend-face-background start
+                                 (point-max)
+                                 ;; TODO: different face
+                                 'ivy-hoogle-candidate-source-face)))
 
 (defun ivy-hoogle--render-doc (result)
   (let ((shr-use-fonts nil)
@@ -383,10 +391,11 @@ available)"
     (let* ((displayed (ivy-hoogle--display-candidate candidate))
            (sources (ivy-hoogle--display-candidate-get-sources displayed))
            (result (ivy-hoogle-candidate-result candidate)))
-      (with-current-buffer (get-buffer-create (help-buffer))
-        (with-help-window (help-buffer)
+      (with-help-window (help-buffer)
+        (with-current-buffer (get-buffer-create (help-buffer))
           (insert displayed ?\n ?\n)
-          (insert (ivy--add-face sources 'ivy-hoogle-candidate-source-face) ?\n)
+          (when (not (string-empty-p sources))
+            (insert (ivy--add-face sources 'ivy-hoogle-candidate-source-face) ?\n))
           (ivy-hoogle--render-doc result))))))
 
 (defun ivy-hoogle nil
@@ -403,6 +412,8 @@ available)"
      :caller 'ivy-hoogle)))
 
 ;; TODO: back button in the help buffer does not work
+;; TODO: the help buffer is too wide when I'm not using the external monitor,
+;; so help gets wrapped making it hard to read
 (ivy-configure 'ivy-hoogle
   :display-transformer-fn #'ivy-hoogle--display-candidate
   :format-fn #'ivy-hoogle--format-function
