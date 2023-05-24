@@ -373,11 +373,17 @@ available)"
                                  (point-max)
                                  'ivy-hoogle-doc-code-face)))
 
+(defun ivy-hoogle--render-tag-tt (dom)
+  (let ((start (point)))
+    (shr-tag-code dom)
+    (colir-blend-face-background start (point-max) 'ivy-hoogle-doc-code-face)))
+
 (defun ivy-hoogle--render-doc (result)
   (let ((shr-use-fonts nil)
         (start (point))
         (shr-external-rendering-functions
-         `((pre . ivy-hoogle--render-tag-pre))))
+         `((pre . ivy-hoogle--render-tag-pre)
+           (tt . ivy-hoogle--render-tag-tt))))
     (insert ?\n (ivy-hoogle-result-doc-html result) ?\n)
     (goto-char start)
     (cl-loop while (< (point) (point-max))
