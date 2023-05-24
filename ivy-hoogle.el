@@ -429,6 +429,11 @@ available)"
 ;; TODO: back button in the help buffer does not work
 ;; TODO: the help buffer is too wide when I'm not using the external monitor,
 ;; so help gets wrapped making it hard to read
+;; TODO: add links to packages and modules
+;; TODO: handle links in the documentation
+;; TODO: "Symbol's function definition is void" when refreshing help buffer
+;; TODO: ivy-avy does not work
+;; TODO: ivy-occur does not do anything when a candidate is selected
 (ivy-configure 'ivy-hoogle
   :display-transformer-fn #'ivy-hoogle--display-candidate
   :format-fn #'ivy-hoogle--format-function
