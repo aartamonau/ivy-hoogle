@@ -378,18 +378,27 @@ available)"
     (shr-tag-code dom)
     (colir-blend-face-background start (point-max) 'ivy-hoogle-doc-code-face)))
 
-(defun ivy-hoogle--render-doc (result)
+(defun ivy-hoogle--render-doc (doc)
   (let ((shr-use-fonts nil)
         (start (point))
         (shr-external-rendering-functions
          `((pre . ivy-hoogle--render-tag-pre)
            (tt . ivy-hoogle--render-tag-tt))))
-    (insert ?\n (ivy-hoogle-result-doc-html result) ?\n)
+    (insert doc)
     (goto-char start)
     (cl-loop while (< (point) (point-max))
              do (progn (forward-paragraph)
                        (insert "<p/>" ?\n)))
     (shr-render-region start (point))))
+
+(defun ivy-hoogle--render-candidate (candidate)
+  (let* ((displayed (ivy-hoogle--display-candidate candidate))
+         (sources (ivy-hoogle--display-candidate-get-sources displayed))
+         (result (ivy-hoogle-candidate-result candidate)))
+    (insert displayed ?\n ?\n)
+    (when (not (string-empty-p sources))
+      (insert (ivy--add-face sources 'ivy-hoogle-candidate-source-face) ?\n ?\n))
+    (ivy-hoogle--render-doc (ivy-hoogle-result-doc-html result))))
 
 (defun ivy-hoogle--action (candidate)
   (if (not (ivy-hoogle-candidate-p candidate))
@@ -399,15 +408,9 @@ available)"
       ;; I wish I could just disallow selecting these fake candidates, but
       ;; there doesn't seem to be a way to do that
       (ivy-resume)
-    (let* ((displayed (ivy-hoogle--display-candidate candidate))
-           (sources (ivy-hoogle--display-candidate-get-sources displayed))
-           (result (ivy-hoogle-candidate-result candidate)))
-      (with-help-window (help-buffer)
-        (with-current-buffer (get-buffer-create (help-buffer))
-          (insert displayed ?\n ?\n)
-          (when (not (string-empty-p sources))
-            (insert (ivy--add-face sources 'ivy-hoogle-candidate-source-face) ?\n))
-          (ivy-hoogle--render-doc result))))))
+    (with-help-window (help-buffer)
+      (with-current-buffer (get-buffer-create (help-buffer))
+        (ivy-hoogle--render-candidate candidate)))))
 
 (defun ivy-hoogle nil
   (interactive)
