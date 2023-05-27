@@ -413,9 +413,19 @@ available)"
       (with-current-buffer (get-buffer-create (help-buffer))
         (ivy-hoogle--render-candidate candidate)))))
 
+(defun ivy-hoogle-avy ()
+  "Indicate that ivy-avy does not work with ivy-hoogle"
+  (interactive)
+  (user-error "Ivy-hoogle does not support avy integration"))
+
 (defun ivy-hoogle nil
   (interactive)
-  (let ((ivy-dynamic-exhibit-delay-ms 0))
+  (let ((map (make-sparse-keymap))
+        (keys (where-is-internal 'ivy-avy ivy-minibuffer-map))
+        (ivy-dynamic-exhibit-delay-ms 0))
+    ;; ivy-avy is not supported
+    (cl-loop for key in keys
+             do (define-key map key #'ivy-hoogle-avy))
     (ivy-read
      "Hoogle: "
      #'ivy-hoogle--candidates
@@ -424,7 +434,8 @@ available)"
      :require-match t
      :unwind #'ivy-hoogle--cleanup
      :history 'ivy-hoogle--history
-     :caller 'ivy-hoogle)))
+     :caller 'ivy-hoogle
+     :keymap ivy-hoogle-map)))
 
 ;; TODO: back button in the help buffer does not work
 ;; TODO: the help buffer is too wide when I'm not using the external monitor,
@@ -432,7 +443,6 @@ available)"
 ;; TODO: add links to packages and modules
 ;; TODO: handle links in the documentation
 ;; TODO: "Symbol's function definition is void" when refreshing help buffer
-;; TODO: ivy-avy does not work
 ;; TODO: ivy-occur does not do anything when a candidate is selected
 (ivy-configure 'ivy-hoogle
   :display-transformer-fn #'ivy-hoogle--display-candidate
