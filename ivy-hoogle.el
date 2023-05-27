@@ -435,7 +435,7 @@ available)"
      :unwind #'ivy-hoogle--cleanup
      :history 'ivy-hoogle--history
      :caller 'ivy-hoogle
-     :keymap ivy-hoogle-map)))
+     :keymap map)))
 
 ;; TODO: back button in the help buffer does not work
 ;; TODO: the help buffer is too wide when I'm not using the external monitor,
