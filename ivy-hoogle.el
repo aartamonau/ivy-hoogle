@@ -16,8 +16,10 @@
   "TODO"
   :type 'integer)
 
-(defcustom ivy-hoogle-use-haskell-fontify (featurep 'haskell-font-lock)
-  "When non-nil, use haskell-mode fontification to display candidates"
+(defcustom ivy-hoogle-use-haskell-fontify t
+  "When non-nil, use `haskell-mode' fontification to display
+candidates. If `haskell-font-lock' is unavailable, the value will
+be ignored."
   :type 'boolean)
 
 (defface ivy-hoogle-candidate-source-face
@@ -148,10 +150,9 @@ available)"
       (unless (ivy-hoogle-candidate-formatted candidate)
         (let* ((item (ivy-hoogle-result-item result))
                (sources (ivy-hoogle--format-sources (ivy-hoogle-result-sources result)))
-               (formatted (if (not ivy-hoogle-use-haskell-fontify)
+               (formatted (if (or (not ivy-hoogle-use-haskell-fontify)
+                                  (null (require 'haskell-font-lock nil 'noerror)))
                               (ivy--add-face item 'ivy-hoogle-candidate-face)
-                            (unless (require 'haskell-font-lock nil 'noerror)
-                              (user-error "Package haskell-font-lock isn't available"))
                             (haskell-fontify-as-mode item 'haskell-mode))))
           (ivy-hoogle--display-candidate-set-sources formatted sources)
           (setf (ivy-hoogle-candidate-formatted candidate) formatted)))
