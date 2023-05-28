@@ -405,7 +405,9 @@ available)"
     (colir-blend-face-background start (point-max) 'ivy-hoogle-doc-code-face)))
 
 (defun ivy-hoogle--render-doc (doc)
-  (let ((shr-use-fonts nil)
+  (let (;; render using a fixed-pitch font by default; unlike (shr-use-fonts
+        ;; nil), it doesn't prevent shr form using italic font when necessary
+        (shr-current-font 'fixed-pitch)
         (start (point))
         (shr-external-rendering-functions
          `((pre . ivy-hoogle--render-tag-pre)
@@ -420,10 +422,13 @@ available)"
 (defun ivy-hoogle--render-candidate (candidate)
   (let* ((displayed (ivy-hoogle--display-candidate candidate))
          (sources (ivy-hoogle--display-candidate-get-sources displayed))
-         (result (ivy-hoogle-candidate-result candidate)))
+         (result (ivy-hoogle-candidate-result candidate))
+         (start (point)))
     (insert displayed ?\n ?\n)
     (when (not (string-empty-p sources))
       (insert (ivy--add-face sources 'ivy-hoogle-candidate-source-face) ?\n ?\n))
+    ;; use the same font shr will use
+    (add-face-text-property start (point) 'fixed-pitch)
     (ivy-hoogle--render-doc (ivy-hoogle-result-doc-html result))))
 
 (defun ivy-hoogle--action (candidate)
@@ -473,6 +478,7 @@ available)"
 ;; TODO: add links to packages and modules
 ;; TODO: handle links in the documentation
 ;; TODO: "Symbol's function definition is void" when refreshing help buffer
+;; TODO: going through history is janky
 (ivy-configure 'ivy-hoogle
   :display-transformer-fn #'ivy-hoogle--display-candidate
   :format-fn #'ivy-hoogle--format-function
