@@ -329,11 +329,35 @@ available)"
       str
     (ivy--highlight-default str)))
 
+
+(defun ivy-hoogle--occur-press-and-switch ()
+  (interactive)
+  (let ((candidate (buffer-substring (line-beginning-position) (line-end-position))))
+    (ivy-hoogle--show-doc candidate t)))
+
+(defun ivy-hoogle--occur-press ()
+  (interactive)
+  (let ((candidate (buffer-substring (line-beginning-position) (line-end-position))))
+    (ivy-hoogle--show-doc candidate)))
+
+(defun ivy-hoogle--occur-click (event)
+  (interactive "e")
+  (let ((window (posn-window (event-end event)))
+        (pos (posn-point (event-end event))))
+    (with-current-buffer (window-buffer window)
+      (goto-char pos)
+      (ivy-hoogle--occur-press))))
+
 (defun ivy-hoogle--occur-function (candidates)
   (setq candidates (cl-remove-if-not #'ivy-hoogle-candidate-p candidates))
 
   (font-lock-mode -1)
   (ivy-occur-mode)
+  (use-local-map (copy-keymap ivy-occur-mode-map))
+  (local-set-key [remap ivy-occur-press-and-switch] #'ivy-hoogle--occur-press-and-switch)
+  (local-set-key [remap ivy-occur-press] #'ivy-hoogle--occur-press)
+  (local-set-key [remap ivy-occur-click] #'ivy-hoogle--occur-click)
+
   (insert (format "%d candidates:\n" (length candidates)))
   (cl-loop for candidate in candidates
            do (let ((displayed (ivy-hoogle--display-candidate candidate)))
@@ -402,6 +426,9 @@ available)"
     (ivy-hoogle--render-doc (ivy-hoogle-result-doc-html result))))
 
 (defun ivy-hoogle--action (candidate)
+  (ivy-hoogle--show-doc candidate t))
+
+(defun ivy-hoogle--show-doc (candidate &optional select-window)
   (if (not (ivy-hoogle-candidate-p candidate))
       ;; if a non-candidate got selected, like the informational "Updating" or
       ;; "No results", restart selection
@@ -409,7 +436,8 @@ available)"
       ;; I wish I could just disallow selecting these fake candidates, but
       ;; there doesn't seem to be a way to do that
       (ivy-resume)
-    (let ((buffer-name "*hoogle*"))
+    (let ((buffer-name "*hoogle*")
+          (help-window-select select-window))
       (with-current-buffer (get-buffer-create buffer-name)
         (display-buffer (current-buffer) '(nil . ((inhibit-same-window . t))))
         (with-help-window buffer-name
@@ -439,13 +467,9 @@ available)"
      :caller 'ivy-hoogle
      :keymap map)))
 
-;; TODO: back button in the help buffer does not work
-;; TODO: the help buffer is too wide when I'm not using the external monitor,
-;; so help gets wrapped making it hard to read
 ;; TODO: add links to packages and modules
 ;; TODO: handle links in the documentation
 ;; TODO: "Symbol's function definition is void" when refreshing help buffer
-;; TODO: ivy-occur does not do anything when a candidate is selected
 (ivy-configure 'ivy-hoogle
   :display-transformer-fn #'ivy-hoogle--display-candidate
   :format-fn #'ivy-hoogle--format-function
