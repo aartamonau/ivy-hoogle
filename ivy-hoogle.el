@@ -173,7 +173,11 @@ available)"
                     (ivy--add-face sources 'ivy-hoogle-candidate-source-face))))))))
 
 (defun ivy-hoogle--format-candidates (candidates)
-  (let ((width (window-width)))
+  (let ((width (- (window-width)
+                  ;; leave one extra column on the right when running in the
+                  ;; terminal, otherwise the candidates will have a
+                  ;; continuation character displayed (not quite sure why)
+                  (if (display-graphic-p) 0 1))))
     (mapcar (lambda (candidate)
               (ivy-hoogle--format-candidate width candidate))
             candidates)))
