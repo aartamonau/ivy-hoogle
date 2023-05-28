@@ -238,7 +238,7 @@ available)"
   (setq ivy-hoogle--process-query query)
   (setq ivy-hoogle--process
         (apply 'async-start-process
-               "hoogle"
+               "hoogle-process"
                "hoogle"
                'ivy-hoogle--on-finish
                (ivy-hoogle--process-args query))))
@@ -409,9 +409,11 @@ available)"
       ;; I wish I could just disallow selecting these fake candidates, but
       ;; there doesn't seem to be a way to do that
       (ivy-resume)
-    (with-help-window (help-buffer)
-      (with-current-buffer (get-buffer-create (help-buffer))
-        (ivy-hoogle--render-candidate candidate)))))
+    (let ((buffer-name "*hoogle*"))
+      (with-current-buffer (get-buffer-create buffer-name)
+        (display-buffer (current-buffer) '(nil . ((inhibit-same-window . t))))
+        (with-help-window buffer-name
+          (ivy-hoogle--render-candidate candidate))))))
 
 (defun ivy-hoogle-avy ()
   "Indicate that ivy-avy does not work with ivy-hoogle"
