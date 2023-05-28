@@ -439,7 +439,9 @@ available)"
     (let ((buffer-name "*hoogle*")
           (help-window-select select-window))
       (with-current-buffer (get-buffer-create buffer-name)
-        (display-buffer (current-buffer) '(nil . ((inhibit-same-window . t))))
+        ;; show in a new window, unless the buffer is already visible
+        (unless (get-buffer-window)
+          (display-buffer (current-buffer) '(nil . ((inhibit-same-window . t)))))
         (with-help-window buffer-name
           (ivy-hoogle--render-candidate candidate))))))
 
