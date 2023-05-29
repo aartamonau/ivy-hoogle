@@ -379,7 +379,23 @@ available)"
   (goto-char (point-min))
   (forward-line 1)
 
-  (read-only-mode))
+  (read-only-mode)
+
+  ;; a hack to reuse the same buffer for occur results
+  (let* ((buffer-name "*hoogle occur*")
+         (other-buffer (get-buffer buffer-name)))
+    (when other-buffer
+      ;; if the old occur buffer was selected and we get it killed, this will
+      ;; cause an error: ivy will try to select the buffer and that will fail;
+      ;; so update the buffer in the state to prevent this
+      (when (eq (ivy-state-buffer ivy-last) other-buffer)
+        (setf (ivy-state-buffer ivy-last) (current-buffer)))
+      (let ((window (get-buffer-window other-buffer)))
+        (kill-buffer other-buffer)
+        ;; if the buffer was visible, show the replacement buffer in the same
+        ;; window
+        (set-window-buffer window (current-buffer))))
+    (rename-buffer buffer-name)))
 
 (defun ivy-hoogle--render-tag-pre (dom)
   (let ((start (point))
@@ -483,6 +499,7 @@ available)"
 ;; TODO: handle links in the documentation
 ;; TODO: "Symbol's function definition is void" when refreshing help buffer
 ;; TODO: going through history is janky
+;; TODO: next/previous-error in the occur window
 (ivy-configure 'ivy-hoogle
   :display-transformer-fn #'ivy-hoogle--display-candidate
   :format-fn #'ivy-hoogle--format-function
