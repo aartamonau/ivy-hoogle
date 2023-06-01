@@ -460,9 +460,6 @@ the buffer has already been initialized.")
     (ivy-hoogle--render-doc (ivy-hoogle-result-doc-html result))))
 
 (defun ivy-hoogle--action (candidate)
-  (ivy-hoogle--show-doc candidate t))
-
-(defun ivy-hoogle--show-doc (candidate &optional select-window)
   (if (not (ivy-hoogle-candidate-p candidate))
       ;; if a non-candidate got selected, like the informational "Updating" or
       ;; "No results", restart selection
@@ -470,14 +467,17 @@ the buffer has already been initialized.")
       ;; I wish I could just disallow selecting these fake candidates, but
       ;; there doesn't seem to be a way to do that
       (ivy-resume)
-    (let ((buffer-name "*hoogle*")
-          (help-window-select select-window))
-      (with-current-buffer (get-buffer-create buffer-name)
-        ;; show in a new window, unless the buffer is already visible
-        (unless (get-buffer-window)
-          (display-buffer (current-buffer) '(nil . ((inhibit-same-window . t)))))
-        (with-help-window buffer-name
-          (ivy-hoogle--render-candidate candidate))))))
+    (ivy-hoogle--show-doc candidate t)))
+
+(defun ivy-hoogle--show-doc (candidate &optional select-window)
+  (let ((buffer-name "*hoogle*")
+        (help-window-select select-window))
+    (with-current-buffer (get-buffer-create buffer-name)
+      ;; show in a new window, unless the buffer is already visible
+      (unless (get-buffer-window)
+        (display-buffer (current-buffer) '(nil . ((inhibit-same-window . t)))))
+      (with-help-window buffer-name
+        (ivy-hoogle--render-candidate candidate)))))
 
 (defun ivy-hoogle-occur ()
   "Show current candidates in an occur buffer. See `ivy-occur' for
