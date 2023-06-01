@@ -81,6 +81,12 @@ available)"
 (defvar ivy-hoogle--process-query nil)
 (defvar ivy-hoogle--process nil)
 (defvar ivy-hoogle--sync-candidates nil)
+(defvar ivy-hoogle--fetch-mode 'async
+  "Either 'async or 'sync. The latter will make ivy-hoogle--action
+fetch candidates synchronously.")
+(defvar-local ivy-hoogle--occur-initalized nil
+  "Buffer local variable set in occur buffers to indicate whether
+the buffer has already been initialized.")
 
 (defun ivy-hoogle--group-by (elems key-fn)
   (let ((groups (make-hash-table :test #'equal))
@@ -296,10 +302,7 @@ available)"
   (let ((query (string-trim query)))
     (if (equal query "")
         (ivy-hoogle--no-results)
-      (if ivy-occur-last
-          ;; we're called from occur mode, return the candidates
-          ;; synchronously, because asynchronous update only works with the
-          ;; minibuffer
+      (if (eq ivy-hoogle--fetch-mode 'sync)
           (ivy-hoogle--call-hoogle-sync query)
         (let ((cached (ivy-hoogle--cached-candidates query)))
           (if cached
@@ -334,7 +337,6 @@ available)"
       str
     (ivy--highlight-default str)))
 
-
 (defun ivy-hoogle--occur-press-and-switch ()
   (interactive)
   (let ((candidate (buffer-substring (line-beginning-position) (line-end-position))))
@@ -356,46 +358,52 @@ available)"
 (defun ivy-hoogle--occur-function (candidates)
   (setq candidates (cl-remove-if-not #'ivy-hoogle-candidate-p candidates))
 
-  (font-lock-mode -1)
-  (ivy-occur-mode)
-  (use-local-map (copy-keymap ivy-occur-mode-map))
-  (local-set-key [remap ivy-occur-press-and-switch] #'ivy-hoogle--occur-press-and-switch)
-  (local-set-key [remap ivy-occur-press] #'ivy-hoogle--occur-press)
-  (local-set-key [remap ivy-occur-click] #'ivy-hoogle--occur-click)
+  (unless ivy-hoogle--occur-initalized
+    (font-lock-mode -1)
+    (ivy-occur-mode)
+    (use-local-map (copy-keymap ivy-occur-mode-map))
+    (local-set-key [remap ivy-occur-press-and-switch] #'ivy-hoogle--occur-press-and-switch)
+    (local-set-key [remap ivy-occur-press] #'ivy-hoogle--occur-press)
+    (local-set-key [remap ivy-occur-click] #'ivy-hoogle--occur-click)
+    (read-only-mode)
 
-  (insert (format "%d candidates:\n" (length candidates)))
-  (cl-loop for candidate in candidates
-           do (let ((displayed (ivy-hoogle--display-candidate candidate)))
-                (add-text-properties
-                 0
-                 (length displayed)
-                 '(mouse-face
-                   highlight
-                   help-echo "mouse-1: call ivy-action")
-                 displayed)
-                (insert displayed ?\n)))
+    ;; a hack to reuse the same buffer for occur results
+    (let* ((buffer-name "*hoogle occur*")
+           (other-buffer (get-buffer buffer-name)))
+      (when other-buffer
+        ;; if the old occur buffer was selected and we get it killed, this will
+        ;; cause an error: ivy will try to select the buffer and that will fail;
+        ;; so update the buffer in the state to prevent this
+        (when (eq (ivy-state-buffer ivy-last) other-buffer)
+          (setf (ivy-state-buffer ivy-last) (current-buffer)))
+        (let ((window (get-buffer-window other-buffer)))
+          (kill-buffer other-buffer)
+          ;; if the buffer was visible, show the replacement buffer in the same
+          ;; window
+          (set-window-buffer window (current-buffer))))
+      (rename-buffer buffer-name))
 
-  ;; go to the first match
-  (goto-char (point-min))
-  (forward-line 1)
+    ;; asynchronous fetching works only in the minibuffer
+    (set (make-variable-buffer-local 'ivy-hoogle--fetch-mode) 'sync)
 
-  (read-only-mode)
+    (setq ivy-hoogle--occur-initalized t))
 
-  ;; a hack to reuse the same buffer for occur results
-  (let* ((buffer-name "*hoogle occur*")
-         (other-buffer (get-buffer buffer-name)))
-    (when other-buffer
-      ;; if the old occur buffer was selected and we get it killed, this will
-      ;; cause an error: ivy will try to select the buffer and that will fail;
-      ;; so update the buffer in the state to prevent this
-      (when (eq (ivy-state-buffer ivy-last) other-buffer)
-        (setf (ivy-state-buffer ivy-last) (current-buffer)))
-      (let ((window (get-buffer-window other-buffer)))
-        (kill-buffer other-buffer)
-        ;; if the buffer was visible, show the replacement buffer in the same
-        ;; window
-        (set-window-buffer window (current-buffer))))
-    (rename-buffer buffer-name)))
+  (let ((inhibit-read-only t))
+    (insert (format "%d candidates:\n" (length candidates)))
+    (cl-loop for candidate in candidates
+             do (let ((displayed (ivy-hoogle--display-candidate candidate)))
+                  (add-text-properties
+                   0
+                   (length displayed)
+                   '(mouse-face
+                     highlight
+                     help-echo "mouse-1: call ivy-action")
+                   displayed)
+                  (insert displayed ?\n)))
+
+    ;; go to the first match
+    (goto-char (point-min))
+    (forward-line 1)))
 
 (defun ivy-hoogle--render-tag-pre (dom)
   (let ((start (point))
@@ -471,6 +479,13 @@ available)"
         (with-help-window buffer-name
           (ivy-hoogle--render-candidate candidate))))))
 
+(defun ivy-hoogle-occur ()
+  "Show current candidates in an occur buffer. See `ivy-occur' for
+more details."
+  (interactive)
+  (let ((ivy-hoogle--fetch-mode 'sync))
+    (ivy-occur)))
+
 (defun ivy-hoogle-avy ()
   "Indicate that ivy-avy does not work with ivy-hoogle"
   (interactive)
@@ -479,11 +494,14 @@ available)"
 (defun ivy-hoogle nil
   (interactive)
   (let ((map (make-sparse-keymap))
-        (keys (where-is-internal 'ivy-avy ivy-minibuffer-map))
         (ivy-dynamic-exhibit-delay-ms 0))
-    ;; ivy-avy is not supported
-    (cl-loop for key in keys
-             do (define-key map key #'ivy-hoogle-avy))
+    (cl-flet ((rebind (command replacement)
+                      (cl-loop for key in (where-is-internal command ivy-minibuffer-map)
+                               do (define-key map key replacement))))
+      ;; ivy-avy is not supported
+      (rebind #'ivy-avy #'ivy-hoogle-avy)
+      ;; ivy-occur requires some special handling
+      (rebind #'ivy-occur #'ivy-hoogle-occur))
     (ivy-read
      "Hoogle: "
      #'ivy-hoogle--candidates
