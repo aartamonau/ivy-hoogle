@@ -507,7 +507,7 @@ the buffer has already been initialized.")
     (ivy-hoogle--show-doc candidate t)))
 
 (defun ivy-hoogle--show-doc (candidate &optional select-window)
-  (let ((buffer-name "*hoogle*")
+  (let ((buffer-name "*Help*")
         (help-window-select select-window))
     (with-current-buffer (get-buffer-create buffer-name)
       ;; show in a new window, unless the buffer is already visible
