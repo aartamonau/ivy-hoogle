@@ -466,7 +466,9 @@ the buffer has already been initialized.")
 
 (defun ivy-hoogle--render-width nil
   "Calculate the width to use when rendering the candidate."
-  (let* ((window-width (window-body-width))
+  (let* (;; just in case there are multiple windows displaying the buffer,
+         ;; pick the smallest width out of all of them
+         (window-width (apply #'min (mapcar #'window-body-width (get-buffer-window-list))))
          ;; the width will be the minimum of the max width or the window width
          ;; with some characters reserved for overlays
          (width (min (if (< window-width ivy-hoogle-help-reserved-characters)
