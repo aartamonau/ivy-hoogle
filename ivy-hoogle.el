@@ -516,7 +516,8 @@ the buffer has already been initialized.")
         (display-buffer (current-buffer) '(nil . ((inhibit-same-window . t)))))
       (with-help-window buffer-name
         (with-selected-window (get-buffer-window)
-          (ivy-hoogle--render-candidate candidate))))))
+          (ivy-hoogle--render-candidate candidate)))
+      (goto-char (point-min)))))
 
 (defun ivy-hoogle-occur ()
   "Show current candidates in an occur buffer. See `ivy-occur' for
