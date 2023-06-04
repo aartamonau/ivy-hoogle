@@ -555,9 +555,9 @@ more details."
 
 ;; TODO: add links to packages and modules
 ;; TODO: handle links in the documentation
-;; TODO: "Symbol's function definition is void" when refreshing help buffer
 ;; TODO: going through history is janky
 ;; TODO: next/previous-error in the occur window
+;; TODO: (help buffer) render each package on separate line
 (ivy-configure 'ivy-hoogle
   :display-transformer-fn #'ivy-hoogle--display-candidate
   :format-fn #'ivy-hoogle--format-function
