@@ -4,6 +4,7 @@
 (require 'font-lock)
 (require 'ivy)
 (require 'seq)
+(require 'shr)
 
 (defgroup ivy-hoogle-appearance nil
   "Ivy Hoogle Appearance.")
@@ -21,6 +22,22 @@
 candidates. If `haskell-font-lock' is unavailable, the value will
 be ignored."
   :type 'boolean)
+
+(defcustom ivy-hoogle-help-reserved-characters 10
+  "Reserve these many characters in the help window when displaying
+documentation for the selected candidate. The rendered
+documentation will span the width of the window minus the number
+of reserved characters."
+  :type 'integer)
+
+(defcustom ivy-hoogle-help-max-width nil
+  "If not `nil', defines the maximum width of the documentation
+rendered in the help window. When `nil', the value of `shr-width'
+or, if it's not set, `shr-max-width' will be used. If the latter
+is not set either, the full width of the window minus
+`ivy-hoogle-help-reserved-characters' characters will be used."
+  :type '(choice (integer :tag "Fixed width in characters")
+                 (const :tag "Use the full width of the window" nil)))
 
 (defface ivy-hoogle-candidate-source-face
   '((t :inherit shadow))
@@ -447,8 +464,28 @@ the buffer has already been initialized.")
                        (insert "<p/>" ?\n)))
     (shr-render-region start (point))))
 
+(defun ivy-hoogle--render-width nil
+  "Calculate the width to use when rendering the candidate."
+  (let* ((window-width (window-body-width))
+         ;; the width will be the minimum of the max width or the window width
+         ;; with some characters reserved for overlays
+         (width (min (if (< window-width ivy-hoogle-help-reserved-characters)
+                         ;; not much we can do
+                         window-width
+                       (- window-width
+                          ;; Reserve some width for overlays rendered by minor
+                          ;; modes like linum. Because of these overlays, the
+                          ;; rendered text is likely to wrap around if the full
+                          ;; width of the window is used.
+                          ivy-hoogle-help-reserved-characters))
+                     (or ivy-hoogle-help-max-width
+                         shr-width
+                         shr-max-width))))
+    width))
+
 (defun ivy-hoogle--render-candidate (candidate)
-  (let* ((displayed (ivy-hoogle--display-candidate candidate))
+  (let* ((shr-width (ivy-hoogle--render-width))
+         (displayed (ivy-hoogle--display-candidate candidate))
          (sources (ivy-hoogle--display-candidate-get-sources displayed))
          (result (ivy-hoogle-candidate-result candidate))
          (start (point)))
@@ -477,7 +514,8 @@ the buffer has already been initialized.")
       (unless (get-buffer-window)
         (display-buffer (current-buffer) '(nil . ((inhibit-same-window . t)))))
       (with-help-window buffer-name
-        (ivy-hoogle--render-candidate candidate)))))
+        (with-selected-window (get-buffer-window)
+          (ivy-hoogle--render-candidate candidate))))))
 
 (defun ivy-hoogle-occur ()
   "Show current candidates in an occur buffer. See `ivy-occur' for
