@@ -354,34 +354,12 @@ the buffer has already been initialized.")
       str
     (ivy--highlight-default str)))
 
-(defun ivy-hoogle--occur-press-and-switch ()
-  (interactive)
-  (let ((candidate (buffer-substring (line-beginning-position) (line-end-position))))
-    (ivy-hoogle--show-doc candidate t)))
-
-(defun ivy-hoogle--occur-press ()
-  (interactive)
-  (let ((candidate (buffer-substring (line-beginning-position) (line-end-position))))
-    (ivy-hoogle--show-doc candidate)))
-
-(defun ivy-hoogle--occur-click (event)
-  (interactive "e")
-  (let ((window (posn-window (event-end event)))
-        (pos (posn-point (event-end event))))
-    (with-current-buffer (window-buffer window)
-      (goto-char pos)
-      (ivy-hoogle--occur-press))))
-
 (defun ivy-hoogle--occur-function (candidates)
   (setq candidates (cl-remove-if-not #'ivy-hoogle-candidate-p candidates))
 
   (unless ivy-hoogle--occur-initalized
     (font-lock-mode -1)
     (ivy-occur-mode)
-    (use-local-map (copy-keymap ivy-occur-mode-map))
-    (local-set-key [remap ivy-occur-press-and-switch] #'ivy-hoogle--occur-press-and-switch)
-    (local-set-key [remap ivy-occur-press] #'ivy-hoogle--occur-press)
-    (local-set-key [remap ivy-occur-click] #'ivy-hoogle--occur-click)
     (read-only-mode)
 
     ;; a hack to reuse the same buffer for occur results
@@ -416,7 +394,10 @@ the buffer has already been initialized.")
                      highlight
                      help-echo "mouse-1: call ivy-action")
                    displayed)
-                  (insert displayed ?\n)))
+                  ;; need place 4 spaces in front of the candidate, because
+                  ;; otherwise ivy-occur won't recognize it (see
+                  ;; ivy-occur-press)
+                  (insert "    " displayed ?\n)))
 
     ;; go to the first match
     (goto-char (point-min))
@@ -506,19 +487,19 @@ the buffer has already been initialized.")
       ;; I wish I could just disallow selecting these fake candidates, but
       ;; there doesn't seem to be a way to do that
       (ivy-resume)
-    (ivy-hoogle--show-doc candidate t)))
+    (ivy-hoogle--show-doc candidate)))
 
-(defun ivy-hoogle--show-doc (candidate &optional select-window)
-  (let ((buffer-name "*Help*")
-        (help-window-select select-window))
+(defun ivy-hoogle--show-doc (candidate)
+  (let ((buffer-name "*Help*"))
     (help-setup-xref `(ivy-hoogle--show-doc ,candidate nil) nil)
     (with-current-buffer (get-buffer-create buffer-name)
-      ;; show in a new window, unless the buffer is already visible
+      ;; display the buffer, unless it's already visible this is required for
+      ;; us to be able to determine rendering width for shr (see
+      ;; `ivy-hoogle--render-width')
       (unless (get-buffer-window)
-        (display-buffer (current-buffer) '(nil . ((inhibit-same-window . t)))))
+        (display-buffer (current-buffer)))
       (with-help-window buffer-name
-        (with-selected-window (get-buffer-window)
-          (ivy-hoogle--render-candidate candidate)))
+        (ivy-hoogle--render-candidate candidate))
       (set-window-point (get-buffer-window) (point-min)))))
 
 (defun ivy-hoogle-occur ()
@@ -558,7 +539,6 @@ more details."
 ;; TODO: add links to packages and modules
 ;; TODO: handle links in the documentation
 ;; TODO: going through history is janky
-;; TODO: next/previous-error in the occur window
 ;; TODO: (help buffer) render each package on separate line
 (ivy-configure 'ivy-hoogle
   :display-transformer-fn #'ivy-hoogle--display-candidate
