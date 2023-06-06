@@ -517,7 +517,18 @@ more details."
 (defun ivy-hoogle nil
   (interactive)
   (let ((map (make-sparse-keymap))
-        (ivy-dynamic-exhibit-delay-ms 0))
+        (ivy-dynamic-exhibit-delay-ms 0)
+        ;; ivy calls `read-from-minibuffer' that adds the selected candidate
+        ;; in the history; but then ivy itself also adds the entered text;
+        ;;
+        ;; it makes for a confusing experience; essentially, there'll be
+        ;; duplicates in the history, but then ivy's attempt at deduplicating
+        ;; the history also won't work, because the candidate and the input
+        ;; are likely not to be equal
+        ;;
+        ;; setting `history-add-new-input' to `nil' tells
+        ;; `read-from-minibuffer' not to update the history
+        (history-add-new-input nil))
     (cl-flet ((rebind (command replacement)
                       (cl-loop for key in (where-is-internal command ivy-minibuffer-map)
                                do (define-key map key replacement))))
@@ -538,7 +549,6 @@ more details."
 
 ;; TODO: add links to packages and modules
 ;; TODO: handle links in the documentation
-;; TODO: going through history is janky
 ;; TODO: (help buffer) render each package on separate line
 (ivy-configure 'ivy-hoogle
   :display-transformer-fn #'ivy-hoogle--display-candidate
