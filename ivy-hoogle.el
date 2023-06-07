@@ -491,7 +491,7 @@ the buffer has already been initialized.")
 
 (defun ivy-hoogle--show-doc (candidate)
   (let ((buffer-name "*Help*"))
-    (help-setup-xref `(ivy-hoogle--show-doc ,candidate nil) nil)
+    (help-setup-xref `(ivy-hoogle--show-doc ,candidate) nil)
     (with-current-buffer (get-buffer-create buffer-name)
       ;; display the buffer, unless it's already visible this is required for
       ;; us to be able to determine rendering width for shr (see
