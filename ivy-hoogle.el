@@ -1,4 +1,5 @@
 (require 'async)
+(require 'button)
 (require 'cl-lib)
 (require 'colir)
 (require 'font-lock)
@@ -54,6 +55,12 @@ available)"
 (defface ivy-hoogle-doc-code-face
   '((t :inherit (fixed-pitch font-lock-function-name-face)))
   "Face used to display code blocks in the documentation buffer"
+  :group 'ivy-hoogle-appearance)
+
+(defface ivy-hoogle-doc-xref-link-face
+  '((t :inherit (fixed-pitch font-lock-constant-face bold underline)))
+  "Face used to display links to other functions the documentation
+buffer"
   :group 'ivy-hoogle-appearance)
 
 (cl-defstruct ivy-hoogle-source
@@ -430,6 +437,43 @@ the buffer has already been initialized.")
     (shr-tag-code dom)
     (colir-blend-face-background start (point-max) 'ivy-hoogle-doc-code-face)))
 
+(defun ivy-hoogle--render-tag-a (dom)
+  (let* ((start (point))
+         (body (pcase (dom-children dom)
+                 ((and `(,head)
+                       (guard (stringp head))) head)
+                 (_ nil)))
+         (url
+          ;; does the content look like a url?
+          (when (url-type (url-generic-parse-url body))
+            body)))
+    (shr-generic dom)
+    (cond (url (shr-urlify start url)
+               (put-text-property start (point) 'action #'ivy-hoogle--follow-url))
+          (body (ivy-hoogle--make-xref-link start body)))))
+
+(defun ivy-hoogle--follow-url (button)
+  (save-excursion
+    (goto-char (button-start button))
+    (shr-browse-url t)))
+
+(defun ivy-hoogle--make-xref-link (start body)
+  (colir-blend-face-background start (point) 'ivy-hoogle-doc-xref-link-face)
+  (add-text-properties
+   start (point)
+   (list 'button t
+         'ivy-hoogle-query body
+         'help-echo (format "Search hoogle for \"%s\"" body)
+         'category 'ivy-hoogle
+         'mouse-face (list 'highlight)
+         'action #'ivy-hoogle--follow-xref-link)))
+
+(defun ivy-hoogle--follow-xref-link (button)
+  (let ((query (get-text-property button 'ivy-hoogle-query)))
+    (if (not query)
+        (message "No ivy-hoogle xref link at point")
+      (ivy-hoogle query))))
+
 (defun ivy-hoogle--render-doc (doc)
   (let (;; render using a fixed-pitch font by default; unlike (shr-use-fonts
         ;; nil), it doesn't prevent shr form using italic font when necessary
@@ -437,7 +481,8 @@ the buffer has already been initialized.")
         (start (point))
         (shr-external-rendering-functions
          `((pre . ivy-hoogle--render-tag-pre)
-           (tt . ivy-hoogle--render-tag-tt))))
+           (tt . ivy-hoogle--render-tag-tt)
+           (a . ivy-hoogle--render-tag-a))))
     (insert doc)
     (goto-char start)
     (cl-loop while (< (point) (point-max))
@@ -514,7 +559,7 @@ more details."
   (interactive)
   (user-error "Ivy-hoogle does not support avy integration"))
 
-(defun ivy-hoogle nil
+(defun ivy-hoogle (&optional initial)
   (interactive)
   (let ((map (make-sparse-keymap))
         (ivy-dynamic-exhibit-delay-ms 0)
@@ -545,11 +590,15 @@ more details."
      :unwind #'ivy-hoogle--cleanup
      :history 'ivy-hoogle--history
      :caller 'ivy-hoogle
-     :keymap map)))
+     :keymap map
+     :initial-input initial)))
 
 ;; TODO: add links to packages and modules
 ;; TODO: handle links in the documentation
 ;; TODO: (help buffer) render each package on separate line
+;; TODO: ivy-resume does not restore the position properly (try Control.Monad.Identity)
+;; TODO: when ivy-hoogle is called by ivy-hoogle--follow-xref-link, there
+;; should be no initial delay in fetching data
 (ivy-configure 'ivy-hoogle
   :display-transformer-fn #'ivy-hoogle--display-candidate
   :format-fn #'ivy-hoogle--format-function
