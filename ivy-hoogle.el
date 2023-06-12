@@ -262,7 +262,7 @@ the buffer has already been initialized.")
 (defun ivy-hoogle--on-finish (process)
   (let ((candidates (or (ivy-hoogle--process-read-candidates process)
                         (ivy-hoogle--no-results))))
-    (puthash ivy-hoogle--process-query candidates ivy-hoogle--cache)
+    (ivy-hoogle--cache-candidates ivy-hoogle--process-query candidates)
     (ivy-hoogle--set-candidates candidates)
     (ivy-update-candidates candidates)
     (ivy-hoogle--cleanup-process)))
@@ -322,20 +322,33 @@ the buffer has already been initialized.")
 (defun ivy-hoogle--cached-candidates (query)
   (gethash query ivy-hoogle--cache))
 
+(defun ivy-hoogle--cache-candidates (query candidates)
+  (puthash ivy-hoogle--process-query candidates ivy-hoogle--cache))
+
 (defun ivy-hoogle--candidates (query)
-  (let ((query (string-trim query)))
-    (if (equal query "")
-        (ivy-hoogle--no-results)
-      (let ((cached (ivy-hoogle--cached-candidates query)))
-        (if cached
-            cached
-          (if (or (eq ivy-hoogle--fetch-mode 'sync)
-                  ;; when ivy-hoogle is called with initial input, do the first
-                  ;; fetch synchronously
-                  (equal (ivy-state-initial-input ivy-last) query))
-              (ivy-hoogle--call-hoogle-sync query)
-            (ivy-hoogle--queue-update query)
-            (ivy-hoogle--updating)))))))
+  (let* ((query (string-trim query))
+         (cached (ivy-hoogle--cached-candidates query)))
+    (cond ((equal query "")
+           ;; show "No results" message on empty input
+           (ivy-hoogle--no-results))
+          (cached
+           ;; return the cached result if it's present
+           cached)
+          ((eq ivy-hoogle--fetch-mode 'sync)
+           ;; don't cache results here because the cache is only cleaned
+           ;; up if ivy-hoogle--candidates is called from the
+           ;; minibuffer, so caching would introduce a space leak
+           (ivy-hoogle--call-hoogle-sync query))
+          ((equal (ivy-state-initial-input ivy-last) query)
+           ;; when ivy-hoogle is called with initial input, do the first
+           ;; fetch synchronously
+           (let ((candidates (ivy-hoogle--call-hoogle-sync query)))
+             ;; also cache the result
+             (ivy-hoogle--cache-candidates query candidates)))
+          (t
+           ;; otherwise, fetch asynchronously
+           (ivy-hoogle--queue-update query)
+           (ivy-hoogle--updating)))))
 
 (defun ivy-hoogle--updating nil
   '("Updating…"))
