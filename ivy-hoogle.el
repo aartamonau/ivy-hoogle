@@ -326,11 +326,14 @@ the buffer has already been initialized.")
   (let ((query (string-trim query)))
     (if (equal query "")
         (ivy-hoogle--no-results)
-      (if (eq ivy-hoogle--fetch-mode 'sync)
-          (ivy-hoogle--call-hoogle-sync query)
-        (let ((cached (ivy-hoogle--cached-candidates query)))
-          (if cached
-              cached
+      (let ((cached (ivy-hoogle--cached-candidates query)))
+        (if cached
+            cached
+          (if (or (eq ivy-hoogle--fetch-mode 'sync)
+                  ;; when ivy-hoogle is called with initial input, do the first
+                  ;; fetch synchronously
+                  (equal (ivy-state-initial-input ivy-last) query))
+              (ivy-hoogle--call-hoogle-sync query)
             (ivy-hoogle--queue-update query)
             (ivy-hoogle--updating)))))))
 
@@ -597,8 +600,6 @@ more details."
 ;; TODO: handle links in the documentation
 ;; TODO: (help buffer) render each package on separate line
 ;; TODO: ivy-resume does not restore the position properly (try Control.Monad.Identity)
-;; TODO: when ivy-hoogle is called by ivy-hoogle--follow-xref-link, there
-;; should be no initial delay in fetching data
 (ivy-configure 'ivy-hoogle
   :display-transformer-fn #'ivy-hoogle--display-candidate
   :format-fn #'ivy-hoogle--format-function
