@@ -1,7 +1,6 @@
 (require 'async)
 (require 'button)
 (require 'cl-lib)
-(require 'colir)
 (require 'font-lock)
 (require 'ivy)
 (require 'seq)
@@ -444,14 +443,12 @@ the buffer has already been initialized.")
       (flush-lines "^\s*$" start (point-max))
       (goto-char (point-max))
       (shr-tag-hr nil))
-    (colir-blend-face-background start
-                                 (point-max)
-                                 'ivy-hoogle-doc-code-face)))
+    (font-lock-append-text-property start (point-max) 'face 'ivy-hoogle-doc-code-face))))
 
 (defun ivy-hoogle--render-tag-tt (dom)
   (let ((start (point)))
     (shr-tag-code dom)
-    (colir-blend-face-background start (point-max) 'ivy-hoogle-doc-code-face)))
+    (font-lock-append-text-property start (point-max) 'face 'ivy-hoogle-doc-code-face)))
 
 (defun ivy-hoogle--render-tag-a (dom)
   (let* ((start (point))
@@ -474,7 +471,7 @@ the buffer has already been initialized.")
     (shr-browse-url t)))
 
 (defun ivy-hoogle--make-xref-link (start body)
-  (colir-blend-face-background start (point) 'ivy-hoogle-doc-xref-link-face)
+  (font-lock-append-text-property start (point) 'face 'ivy-hoogle-doc-xref-link-face)
   (add-text-properties
    start (point)
    (list 'button t
