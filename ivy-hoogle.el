@@ -458,17 +458,26 @@ the buffer has already been initialized.")
 
 (defun ivy-hoogle--render-tag-a (dom)
   (let* ((start (point))
-         (body (pcase (dom-children dom)
-                 ((and `(,head)
-                       (guard (stringp head))) head)
-                 (_ nil)))
+         (target (pcase (dom-children dom)
+                   ((and `(,head)
+                         (guard (stringp head)))
+                    head)
+                   (_ nil)))
+         (parsed (url-generic-parse-url target))
          (url
           ;; does the content look like a url?
-          (when (url-type (url-generic-parse-url body))
-            body)))
-    (shr-generic dom)
-    (cond (url (ivy-hoogle--urlify start url))
-          (body (ivy-hoogle--make-xref-link start body)))))
+          (when (url-type parsed)
+            target)))
+    ;; Some links have a fragment like Data.Foldable#laws. But
+    ;; we can't do anything useful with it, so we'll just strip it.
+    (setq target (url-filename parsed))
+    (cond (url
+           (shr-generic dom)
+           (ivy-hoogle--urlify start url))
+          (target
+           (insert target)
+           (ivy-hoogle--make-xref-link start target))
+          (t (shr-generic dom)))))
 
 (defun ivy-hoogle--urlify (start url)
   (shr-urlify start url)
@@ -479,13 +488,13 @@ the buffer has already been initialized.")
     (goto-char (button-start button))
     (shr-browse-url t)))
 
-(defun ivy-hoogle--make-xref-link (start body)
+(defun ivy-hoogle--make-xref-link (start target)
   (font-lock-append-text-property start (point) 'face 'ivy-hoogle-doc-xref-link-face)
   (add-text-properties
    start (point)
    (list 'button t
-         'ivy-hoogle-query body
-         'help-echo (format "Search hoogle for \"%s\"" body)
+         'ivy-hoogle-query target
+         'help-echo (format "Search hoogle for \"%s\"" target)
          'category 'ivy-hoogle
          'mouse-face (list 'highlight)
          'action #'ivy-hoogle--follow-xref-link)))
