@@ -75,6 +75,12 @@ buffer"
   sources
   doc-html)
 
+(defun ivy-hoogle-result-url (result)
+  "Get the link to external documentation for a candidate."
+  (pcase (ivy-hoogle-result-sources result)
+    (`(,head . ,_) (ivy-hoogle-source-url head))
+    (_ nil)))
+
 (defmacro ivy-hoogle-define-candidate-properties (&rest names)
   (let ((result (mapcan (lambda (name)
                           (let ((fn-name (intern (concat "ivy-hoogle-candidate-" (symbol-name name)))))
@@ -534,9 +540,7 @@ the buffer has already been initialized.")
          (result (ivy-hoogle-candidate-result candidate))
          (start (point)))
     (insert displayed)
-    (let ((button-url (pcase (ivy-hoogle-result-sources result)
-                        (`(,head . ,_) (ivy-hoogle-source-url head))
-                        (_ nil))))
+    (let ((button-url (ivy-hoogle-result-url result)))
       (when button-url
         (insert ?\n ?\n)
         (let ((button-start (point)))
@@ -584,6 +588,18 @@ more details."
   (interactive)
   (user-error "Ivy-hoogle does not support avy integration"))
 
+(defun ivy-hoogle--browse-current-candidate ()
+  "Open documentation for the selected candidate in the browser."
+  (ivy-exit-with-action
+   (lambda (candidate)
+     (let* ((result (ivy-hoogle-candidate-result candidate))
+            (url (ivy-hoogle-result-url result)))
+       (if url
+           (progn
+             (funcall browse-url-secondary-browser-function url)
+             (message "Opened %s" url))
+         (message "No URL found"))))))
+
 (defun ivy-hoogle (&optional initial)
   (interactive)
   (let ((map (make-sparse-keymap))
@@ -619,13 +635,13 @@ more details."
      :initial-input initial)))
 
 ;; TODO: add links to packages and modules
-;; TODO: handle links in the documentation
 ;; TODO: (help buffer) render each package on separate line
 ;; TODO: ivy-resume does not restore the position properly (try Control.Monad.Identity)
 (ivy-configure 'ivy-hoogle
   :display-transformer-fn #'ivy-hoogle--display-candidate
   :format-fn #'ivy-hoogle--format-function
   :occur #'ivy-hoogle--occur-function
+  :alt-done-fn #'ivy-hoogle--browse-current-candidate
   )
 
 ;; the highlight function can only be overridden by associating it with the
