@@ -62,6 +62,11 @@ available)"
 buffer"
   :group 'ivy-hoogle-appearance)
 
+(defvar ivy-hoogle-link-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map "\r" #'push-button)
+    map))
+
 (cl-defstruct ivy-hoogle-source
   url
   package
@@ -481,7 +486,9 @@ the buffer has already been initialized.")
 
 (defun ivy-hoogle--urlify (start url)
   (shr-urlify start url)
-  (put-text-property start (point) 'action #'ivy-hoogle--follow-url))
+  (add-text-properties start (point)
+                       (list 'action #'ivy-hoogle--follow-url
+                             'keymap ivy-hoogle-link-map)))
 
 (defun ivy-hoogle--follow-url (button)
   (save-excursion
@@ -497,7 +504,8 @@ the buffer has already been initialized.")
          'help-echo (format "Search hoogle for \"%s\"" target)
          'category 'ivy-hoogle
          'mouse-face (list 'highlight)
-         'action #'ivy-hoogle--follow-xref-link)))
+         'action #'ivy-hoogle--follow-xref-link
+         'keymap ivy-hoogle-link-map)))
 
 (defun ivy-hoogle--follow-xref-link (button)
   (let ((query (get-text-property button 'ivy-hoogle-query)))
