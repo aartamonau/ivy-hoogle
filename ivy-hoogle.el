@@ -588,17 +588,19 @@ more details."
   (interactive)
   (user-error "Ivy-hoogle does not support avy integration"))
 
-(defun ivy-hoogle--browse-current-candidate ()
+(defun ivy-hoogle--browse-candidate (candidate)
+  "Open documentation for the candidate in the external browser."
+  (let* ((result (ivy-hoogle-candidate-result candidate))
+         (url (ivy-hoogle-result-url result)))
+    (if url
+        (progn
+          (funcall browse-url-secondary-browser-function url)
+          (message "Opened %s" url))
+      (message "No URL found"))))
+
+(defun ivy-hoogle--alt-done ()
   "Open documentation for the selected candidate in the browser."
-  (ivy-exit-with-action
-   (lambda (candidate)
-     (let* ((result (ivy-hoogle-candidate-result candidate))
-            (url (ivy-hoogle-result-url result)))
-       (if url
-           (progn
-             (funcall browse-url-secondary-browser-function url)
-             (message "Opened %s" url))
-         (message "No URL found"))))))
+  (ivy-exit-with-action #'ivy-hoogle--browse-candidate))
 
 (defun ivy-hoogle (&optional initial)
   (interactive)
@@ -641,10 +643,14 @@ more details."
   :display-transformer-fn #'ivy-hoogle--display-candidate
   :format-fn #'ivy-hoogle--format-function
   :occur #'ivy-hoogle--occur-function
-  :alt-done-fn #'ivy-hoogle--browse-current-candidate
+  :alt-done-fn #'ivy-hoogle--alt-done
   )
 
 ;; the highlight function can only be overridden by associating it with the
 ;; regex building function directly
 (setf (alist-get 'ivy-hoogle ivy-re-builders-alist) #'ivy-hoogle--re-builder)
 (setf (alist-get #'ivy-hoogle--re-builder ivy-highlight-functions-alist) #'ivy-hoogle--highlight-function)
+
+(ivy-add-actions
+ 'ivy-hoogle
+ '(("b" ivy-hoogle--browse-candidate "browse")))
