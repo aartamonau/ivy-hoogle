@@ -449,7 +449,7 @@ the buffer has already been initialized.")
       (flush-lines "^\s*$" start (point-max))
       (goto-char (point-max))
       (shr-tag-hr nil))
-    (font-lock-append-text-property start (point-max) 'face 'ivy-hoogle-doc-code-face))))
+    (font-lock-append-text-property start (point-max) 'face 'ivy-hoogle-doc-code-face)))
 
 (defun ivy-hoogle--render-tag-tt (dom)
   (let ((start (point)))
