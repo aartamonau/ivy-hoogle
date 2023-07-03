@@ -480,8 +480,7 @@ the buffer has already been initialized.")
            (shr-generic dom)
            (ivy-hoogle--urlify start url))
           (target
-           (insert target)
-           (ivy-hoogle--make-xref-link start target))
+           (ivy-hoogle--make-xref-link target))
           (t (shr-generic dom)))))
 
 (defun ivy-hoogle--urlify (start url)
@@ -495,17 +494,21 @@ the buffer has already been initialized.")
     (goto-char (button-start button))
     (shr-browse-url t)))
 
-(defun ivy-hoogle--make-xref-link (start target)
-  (font-lock-append-text-property start (point) 'face 'ivy-hoogle-doc-xref-link-face)
-  (add-text-properties
-   start (point)
-   (list 'button t
-         'ivy-hoogle-query target
-         'help-echo (format "Search hoogle for \"%s\"" target)
-         'category 'ivy-hoogle
-         'mouse-face (list 'highlight)
-         'action #'ivy-hoogle--follow-xref-link
-         'keymap ivy-hoogle-link-map)))
+(defun ivy-hoogle--make-xref-link (target)
+  "Insert `target' in the current buffer and make it into an xref
+link."
+  (let ((start (point)))
+    (insert target)
+    (font-lock-append-text-property start (point) 'face 'ivy-hoogle-doc-xref-link-face)
+    (add-text-properties
+     start (point)
+     (list 'button t
+           'ivy-hoogle-query target
+           'help-echo (format "Search hoogle for \"%s\"" target)
+           'category 'ivy-hoogle
+           'mouse-face (list 'highlight)
+           'action #'ivy-hoogle--follow-xref-link
+           'keymap ivy-hoogle-link-map))))
 
 (defun ivy-hoogle--follow-xref-link (button)
   (let ((query (get-text-property button 'ivy-hoogle-query)))
@@ -553,8 +556,8 @@ the buffer has already been initialized.")
 (defun ivy-hoogle--render-candidate (candidate)
   (let* ((shr-width (ivy-hoogle--render-width))
          (displayed (ivy-hoogle--display-candidate candidate))
-         (sources (ivy-hoogle--display-candidate-get-sources displayed))
          (result (ivy-hoogle-candidate-result candidate))
+         (sources (ivy-hoogle-result-sources result))
          (start (point)))
     (insert displayed)
     (let ((button-url (ivy-hoogle-result-url result)))
@@ -564,11 +567,51 @@ the buffer has already been initialized.")
           (insert "[Open in browser]")
           (ivy-hoogle--urlify button-start button-url))))
     (insert ?\n ?\n)
-    (when (not (string-empty-p sources))
-      (insert (ivy--add-face sources 'ivy-hoogle-candidate-source-face) ?\n ?\n))
+    (ivy-hoogle--render-sources shr-width sources)
     ;; use the same font shr will use
     (add-face-text-property start (point) 'fixed-pitch)
     (ivy-hoogle--render-doc (ivy-hoogle-result-doc-html result))))
+
+(defun ivy-hoogle--render-sources-nobreak-p ()
+  (save-excursion
+    (skip-chars-backward " \t")
+    (unless (bolp)
+      (backward-char 1)
+      (not (looking-at ", ")))))
+
+(defun ivy-hoogle--render-sources (width sources)
+  "Render candidate source packages and modules in the help
+buffer and make them into xref links."
+  (let ((sources-by-package (ivy-hoogle--group-by sources #'ivy-hoogle-source-package))
+        (start (point))
+        (first t))
+    (cl-loop for (package . package-sources) in sources-by-package
+             when package
+             do
+             (progn
+               (unless first
+                 (insert ", "))
+               (setq first nil)
+               (let ((modules (seq-remove #'null
+                                          (mapcar #'ivy-hoogle-source-module package-sources))))
+                 (ivy-hoogle--make-xref-link package)
+                 (dolist (module modules)
+                   (insert " ")
+                   (ivy-hoogle--make-xref-link module)))))
+
+    ;; add a new line only if we inserted something in the buffer above
+    (unless (not (equal start (point)))
+      (insert ?\n))
+
+    ;; override the face used the face used by ivy-hoogle--make-xref-link
+    (font-lock-prepend-text-property start (point) 'face 'ivy-hoogle-candidate-source-face)
+
+    ;; format the sources to fit into the buffer width
+    (let ((fill-column width)
+          (fill-prefix nil)
+          ;; break sources only on package boundary
+          (fill-nobreak-predicate '(ivy-hoogle--render-sources-nobreak-p)))
+      (fill-region start (point)))))
 
 (defun ivy-hoogle--action (candidate)
   (if (not (ivy-hoogle-candidate-p candidate))
@@ -653,15 +696,12 @@ more details."
      :keymap map
      :initial-input initial)))
 
-;; TODO: add links to packages and modules
-;; TODO: (help buffer) render each package on separate line
 ;; TODO: ivy-resume does not restore the position properly (try Control.Monad.Identity)
 (ivy-configure 'ivy-hoogle
   :display-transformer-fn #'ivy-hoogle--display-candidate
   :format-fn #'ivy-hoogle--format-function
   :occur #'ivy-hoogle--occur-function
-  :alt-done-fn #'ivy-hoogle--alt-done
-  )
+  :alt-done-fn #'ivy-hoogle--alt-done)
 
 ;; the highlight function can only be overridden by associating it with the
 ;; regex building function directly
