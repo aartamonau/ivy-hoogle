@@ -70,9 +70,7 @@ buffer"
 (cl-defstruct ivy-hoogle-source
   url
   package
-  package-url
-  module
-  module-url)
+  module)
 
 (cl-defstruct ivy-hoogle-result
   "TODO"
@@ -236,18 +234,14 @@ the buffer has already been initialized.")
          (url (gethash "url" parsed))
          (module-obj (gethash "module" parsed (make-hash-table)))
          (module (gethash "name" module-obj))
-         (module-url (gethash "url" module-obj))
          (package-obj (gethash "package" parsed (make-hash-table)))
          (package (gethash "name" package-obj))
-         (package-url (gethash "url" package-obj))
          (doc-html (gethash "docs" parsed)))
     (when (and item url)
       (let ((source (make-ivy-hoogle-source
                      :url url
                      :module module
-                     :module-url module-url
-                     :package package
-                     :package-url package-url)))
+                     :package package)))
         (make-ivy-hoogle-result
          :item item
          :doc-html doc-html
