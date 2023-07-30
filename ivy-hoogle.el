@@ -594,8 +594,8 @@ buffer and make them into xref links."
                    (ivy-hoogle--make-xref-link module)))))
 
     ;; add a new line only if we inserted something in the buffer above
-    (unless (not (equal start (point)))
-      (insert ?\n))
+    (unless (equal start (point))
+      (insert ?\n ?\n))
 
     ;; override the face used the face used by ivy-hoogle--make-xref-link
     (font-lock-prepend-text-property start (point) 'face 'ivy-hoogle-candidate-source-face)
