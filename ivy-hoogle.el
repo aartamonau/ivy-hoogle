@@ -386,15 +386,22 @@ the buffer has already been initialized.")
            (ivy-hoogle--updating)))))
 
 (defun ivy-hoogle--updating nil
+  "A candidate list indicating that no results are available yet."
   '("Updating…"))
 
 (defun ivy-hoogle--no-results nil
+  "A candidate list indicating that nothing was found."
   '("No results"))
 
 (defun ivy-hoogle--re-builder (str)
+  "Custom regex builder function so we can associate
+`ivy-hoogle--highlight-function' with it."
   (ivy--regex-plus str))
 
 (defun ivy-hoogle--highlight-function (str)
+  "Highlights the parts of a rendered candidate that match the
+current query. But it only does so after
+`ivy-restrict-to-matches' was called."
   ;; When ivy-restrict-to-matches is called, it resets dynamic-collection to
   ;; false. This implementation detail is used to determine whether to
   ;; highlight the matching bits in the output:
@@ -413,6 +420,7 @@ the buffer has already been initialized.")
     (ivy--highlight-default str)))
 
 (defun ivy-hoogle--occur-function (candidates)
+  "Renders candidates in an occur buffer."
   (setq candidates (cl-remove-if-not #'ivy-hoogle-candidate-p candidates))
 
   (unless ivy-hoogle--occur-initalized
@@ -462,6 +470,10 @@ the buffer has already been initialized.")
     (forward-line 1)))
 
 (defun ivy-hoogle--render-tag-pre (dom)
+  "Renders <pre> tags as code using `ivy-hoogle-doc-code-face'. If
+it looks like the tag is standalone (not surrounded by text on
+the same line), horizontal bars are rendered around the code
+block to make it standout more."
   (let ((start (point))
         (inline (not (looking-at "^\s*$"))))
     (if inline
@@ -482,11 +494,15 @@ the buffer has already been initialized.")
     (font-lock-append-text-property start (point-max) 'face 'ivy-hoogle-doc-code-face)))
 
 (defun ivy-hoogle--render-tag-tt (dom)
+  "Renders <tt> tags as code using `ivy-hoogle-doc-code-face'."
   (let ((start (point)))
     (shr-tag-code dom)
     (font-lock-append-text-property start (point-max) 'face 'ivy-hoogle-doc-code-face)))
 
 (defun ivy-hoogle--render-tag-a (dom)
+  "A custom renderer for <a> tags. Will create either an external
+link or a link to the definition that will pop in a new
+`ivy-hoogle' session depending on the contents of the tag."
   (let* ((start (point))
          (target (pcase (dom-children dom)
                    ((and `(,head)
@@ -509,12 +525,16 @@ the buffer has already been initialized.")
           (t (shr-generic dom)))))
 
 (defun ivy-hoogle--urlify (start url)
+  "Attaches an external link to the text between `start' and the
+current point in the active buffer."
   (shr-urlify start url)
   (add-text-properties start (point)
                        (list 'action #'ivy-hoogle--follow-url
                              'keymap ivy-hoogle-link-map)))
 
 (defun ivy-hoogle--follow-url (button)
+  "An action that is called when a link to an external URL is
+activated."
   (save-excursion
     (goto-char (button-start button))
     (shr-browse-url t)))
@@ -536,12 +556,18 @@ link."
            'keymap ivy-hoogle-link-map))))
 
 (defun ivy-hoogle--follow-xref-link (button)
+  "An action that is called when a link to a different haskell
+definition is activated. Will start a new `ivy-hoogle' session
+for the user to select the specific definition."
   (let ((query (get-text-property button 'ivy-hoogle-query)))
     (if (not query)
         (message "No ivy-hoogle xref link at point")
       (ivy-hoogle query))))
 
 (defun ivy-hoogle--render-doc (doc)
+  "Render the candidate's documentation in the current buffer. The
+documentation string may contain html tags and is rendered using
+`shr'."
   (let (;; render using a fixed-pitch font by default; unlike (shr-use-fonts
         ;; nil), it doesn't prevent shr form using italic font when necessary
         (shr-current-font 'fixed-pitch)
@@ -579,6 +605,7 @@ link."
     width))
 
 (defun ivy-hoogle--render-candidate (candidate)
+  "Render the candidate in the current buffer."
   (let* ((shr-width (ivy-hoogle--render-width))
          (displayed (ivy-hoogle--display-candidate candidate))
          (result (ivy-hoogle-candidate-result candidate))
@@ -598,6 +625,11 @@ link."
     (ivy-hoogle--render-doc (ivy-hoogle-result-doc-html result))))
 
 (defun ivy-hoogle--render-sources-nobreak-p ()
+  "A predicate that, when used with `fill-region', allows breaking
+only on commas that separate packages, but does not break modules
+names.
+
+See `ivy-hoogle--render-sources'."
   (save-excursion
     (skip-chars-backward " \t")
     (unless (bolp)
@@ -639,6 +671,9 @@ buffer and make them into xref links."
       (fill-region start (point)))))
 
 (defun ivy-hoogle--action (candidate)
+  "Open a help window with the documentation for the passed
+candidate. If the candidate is a fake candidate like that
+returned by `ivy-hoogle--no-results', restart `ivy-hoogle'."
   (if (not (ivy-hoogle-candidate-p candidate))
       ;; if a non-candidate got selected, like the informational "Updating" or
       ;; "No results", restart selection
@@ -649,6 +684,8 @@ buffer and make them into xref links."
     (ivy-hoogle--show-doc candidate)))
 
 (defun ivy-hoogle--show-doc (candidate)
+  "Display a help window with the documentation for the passed
+candidate."
   (let ((buffer-name "*Help*"))
     (help-setup-xref `(ivy-hoogle--show-doc ,candidate) nil)
     (with-current-buffer (get-buffer-create buffer-name)
@@ -688,6 +725,7 @@ more details."
   (ivy-exit-with-action #'ivy-hoogle--browse-candidate))
 
 (defun ivy-hoogle (&optional initial)
+  "Query Hoogle interactively using `ivy`."
   (interactive)
   (let ((map (make-sparse-keymap))
         (ivy-dynamic-exhibit-delay-ms 0)
