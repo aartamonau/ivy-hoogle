@@ -10,11 +10,11 @@
   "Ivy Hoogle Appearance.")
 
 (defcustom ivy-hoogle-delay-ms 200
-  "TODO"
+  "Wait for more input this long before calling calling hoogle."
   :type 'integer)
 
 (defcustom ivy-hoogle-num-candidates 20
-  "TODO"
+  "The maximum number of candidates to fetch for each query."
   :type 'integer)
 
 (defcustom ivy-hoogle-use-haskell-fontify t
@@ -65,18 +65,34 @@ buffer"
 (defvar ivy-hoogle-link-map
   (let ((map (make-sparse-keymap)))
     (define-key map "\r" #'push-button)
-    map))
+    map)
+  "The keymap attached to links in the help buffer.")
 
 (cl-defstruct ivy-hoogle-source
-  url
-  package
-  module)
+  "One source where a specific candidate can be found."
+  (url
+   nil
+   :documentation "A link to the candidate in this source")
+  (package
+   nil
+   :documentation "The name of the package where the candidate is defined")
+  (module
+   nil
+   :documentation "The name of the module where the candidate is defined"))
 
 (cl-defstruct ivy-hoogle-result
-  "TODO"
-  item
-  sources
-  doc-html)
+  "A Hoogle result."
+  (item
+   nil
+   :documentation "A string with the found candidate")
+  (sources
+   nil
+   :documentation "A list of `ivy-hoogle-source' structures for
+  each module where the candidate can be found")
+  (doc-html
+   nil
+   :documentation "The documentation for the found candidate with occasional html
+   tags."))
 
 (defun ivy-hoogle-result-url (result)
   "Get the link to external documentation for a candidate."
@@ -85,6 +101,9 @@ buffer"
     (_ nil)))
 
 (defmacro ivy-hoogle-define-candidate-properties (&rest names)
+  "Define properties that can be attached to a candidate. A
+candidate is the result of a query represented as a string where
+the properties are attached to it as text properties."
   (let ((result (mapcan (lambda (name)
                           (let ((fn-name (intern (concat "ivy-hoogle-candidate-" (symbol-name name)))))
                             `((defun ,fn-name (candidate)
@@ -100,19 +119,31 @@ buffer"
 (ivy-hoogle-define-candidate-properties formatted result)
 
 (defun make-ivy-hoogle-candidate (result)
+  "Make a string candidate out of a query result. The original
+result is attached to the candidate as a text property."
   (let ((item (ivy-hoogle-result-item result)))
     (setf (ivy-hoogle-candidate-result item) result)
     item))
 
 (defun ivy-hoogle-candidate-p (candidate)
+  "Check whether the passed string looks like a valid candidate"
   (not (null (ivy-hoogle-candidate-result candidate))))
 
-(defvar ivy-hoogle--timer nil)
-(defvar ivy-hoogle--history nil)
-(defvar ivy-hoogle--cache (make-hash-table :test 'equal))
-(defvar ivy-hoogle--process-query nil)
-(defvar ivy-hoogle--process nil)
-(defvar ivy-hoogle--sync-candidates nil)
+(defvar ivy-hoogle--timer nil
+  "When this timer fires is when we'll actually call hoogle.")
+(defvar ivy-hoogle--history nil
+  "The history of queries is stored here.")
+(defvar ivy-hoogle--cache (make-hash-table :test 'equal)
+  "Fetched results are cached in this hash table for the duration
+of a single `ivy-hoogle' call. Once `ivy-hoogle' returns, the
+cache is cleaned up.")
+(defvar ivy-hoogle--process-query nil
+  "The query to pass to hoogle process is stored here.")
+(defvar ivy-hoogle--process nil
+  "Stores the async process interacting with the hoogle executable.")
+(defvar ivy-hoogle--sync-candidates nil
+  "When `ivy-hoogle--fetch-mode' is 'sync, the result of the query
+will be stored here.")
 (defvar ivy-hoogle--fetch-mode 'async
   "Either 'async or 'sync. The latter will make ivy-hoogle--action
 fetch candidates synchronously.")
