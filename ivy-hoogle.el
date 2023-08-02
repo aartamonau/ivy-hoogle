@@ -7,7 +7,8 @@
 (require 'shr)
 
 (defgroup ivy-hoogle-appearance nil
-  "Ivy Hoogle Appearance.")
+  "Ivy Hoogle Appearance."
+  :group 'convenience)
 
 (defcustom ivy-hoogle-delay-ms 200
   "Wait for more input this long before calling calling hoogle."
