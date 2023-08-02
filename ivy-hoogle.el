@@ -808,3 +808,5 @@ more details."
 (ivy-add-actions
  'ivy-hoogle
  '(("b" ivy-hoogle--browse-candidate "browse")))
+
+(provide 'ivy-hoogle)
