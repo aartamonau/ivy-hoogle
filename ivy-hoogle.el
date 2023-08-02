@@ -393,7 +393,7 @@ disarms the timer, kills the update process."
 
 (defun ivy-hoogle--cache-candidates (query candidates)
   "Update the cached candidates for a given query."
-  (puthash ivy-hoogle--process-query candidates ivy-hoogle--cache))
+  (puthash query candidates ivy-hoogle--cache))
 
 (defun ivy-hoogle--candidates (query)
   "Called by `ivy-read' whenever the user updates the query. The
