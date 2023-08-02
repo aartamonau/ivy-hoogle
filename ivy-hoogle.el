@@ -188,16 +188,6 @@ the buffer has already been initialized.")
                (setf (ivy-hoogle-result-sources result) sources)
                result))))
 
-(defun ivy-hoogle--set-candidates (candidates)
-  ;; ivy does not update this variable for dynamic collections for some
-  ;; reason, so I need to cheat and do it myself
-  ;;
-  ;; otherwise things like ivy-resume and ivy-restrict-to-matches don't work
-  (setq ivy--old-cands candidates))
-
-(defun ivy-hoogle--get-candidates nil
-  ivy--old-cands)
-
 (defun ivy-hoogle--shorten (str width)
   (let ((len (length str)))
     (cond ((>= width len) str)
@@ -296,7 +286,11 @@ the buffer has already been initialized.")
   (let ((candidates (or (ivy-hoogle--process-read-candidates process)
                         (ivy-hoogle--no-results))))
     (ivy-hoogle--cache-candidates ivy-hoogle--process-query candidates)
-    (ivy-hoogle--set-candidates candidates)
+    ;; ivy does not update this variable for dynamic collections for some
+    ;; reason, so I need to cheat and do it myself
+    ;;
+    ;; otherwise things like ivy-resume and ivy-restrict-to-matches don't work
+    (setq ivy--old-cands candidates)
     (ivy-update-candidates candidates)
     (ivy-hoogle--cleanup-process)))
 
