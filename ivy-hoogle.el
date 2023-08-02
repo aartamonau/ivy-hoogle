@@ -796,6 +796,12 @@ more details."
      :keymap map
      :initial-input initial)))
 
+;;;###autoload
+(defun ivy-hoogle-thing-at-point nil
+  "Query Hoogle for the symbol at point."
+  (interactive)
+  (ivy-hoogle (substring-no-properties (thing-at-point 'symbol))))
+
 ;; TODO: ivy-resume does not restore the position properly (try Control.Monad.Identity)
 (ivy-configure 'ivy-hoogle
   :display-transformer-fn #'ivy-hoogle--display-candidate
