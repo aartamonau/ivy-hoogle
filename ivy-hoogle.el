@@ -757,6 +757,7 @@ more details."
   "Open documentation for the selected candidate in the browser."
   (ivy-exit-with-action #'ivy-hoogle--browse-candidate))
 
+;;;###autoload
 (defun ivy-hoogle (&optional initial)
   "Query Hoogle interactively using `ivy`."
   (interactive)
