@@ -225,8 +225,11 @@ fontified, the sources are formatted and attached to the result."
                (sources (ivy-hoogle--format-sources (ivy-hoogle-result-sources result)))
                (formatted (if (or (not ivy-hoogle-use-haskell-fontify)
                                   (null (require 'haskell-font-lock nil 'noerror)))
-                              (ivy--add-face item 'ivy-hoogle-candidate-face)
-                            (haskell-fontify-as-mode item 'haskell-mode))))
+                                (ivy--add-face item 'ivy-hoogle-candidate-face)
+                            ;; work around a native compilation warning about
+                            ;; haskell-fontify-as-mode not known to be defined
+                            (when (fboundp 'haskell-fontify-as-mode)
+                              (haskell-fontify-as-mode item 'haskell-mode)))))
           (ivy-hoogle--display-candidate-set-sources formatted sources)
           (setf (ivy-hoogle-candidate-formatted candidate) formatted)))
       (copy-sequence (ivy-hoogle-candidate-formatted candidate)))))
