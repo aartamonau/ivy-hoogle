@@ -479,8 +479,7 @@ current query. But it only does so after
       (rename-buffer buffer-name))
 
     ;; asynchronous fetching works only in the minibuffer
-    (set (make-variable-buffer-local 'ivy-hoogle--fetch-mode) 'sync)
-
+    (setq-local ivy-hoogle--fetch-mode 'sync)
     (setq ivy-hoogle--occur-initalized t))
 
   (let ((inhibit-read-only t))
