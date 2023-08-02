@@ -362,12 +362,16 @@ up after the process."
          nil
          'ivy-hoogle--start-hoogle query)))
 
+(defun ivy-hoogle--cancel-update nil
+  "Cancel any outstanding update."
+  (ivy-hoogle--cleanup-timer)
+  (ivy-hoogle--cleanup-process))
+
 (defun ivy-hoogle--cleanup nil
   "Cleanup after an invocation of `ivy-hoogle'. Clears the cache,
 disarms the timer, kills the update process."
   (clrhash ivy-hoogle--cache)
-  (ivy-hoogle--cleanup-timer)
-  (ivy-hoogle--cleanup-process))
+  (ivy-hoogle--cancel-update))
 
 (defun ivy-hoogle--cleanup-timer nil
   "Disarm the update timer."
@@ -401,9 +405,11 @@ displayed in the minibuffer."
   (let* ((query (string-trim query))
          (cached (ivy-hoogle--cached-candidates query)))
     (cond ((equal query "")
+           (ivy-hoogle--cancel-update)
            ;; show "No results" message on empty input
            (ivy-hoogle--no-results))
           (cached
+           (ivy-hoogle--cancel-update)
            ;; return the cached result if it's present
            cached)
           ((eq ivy-hoogle--fetch-mode 'sync)
