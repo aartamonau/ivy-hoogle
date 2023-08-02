@@ -778,9 +778,9 @@ more details."
                       (cl-loop for key in (where-is-internal command ivy-minibuffer-map)
                                do (define-key map key replacement))))
       ;; ivy-avy is not supported
-      (rebind #'ivy-avy #'ivy-hoogle-avy)
+      (rebind 'ivy-avy #'ivy-hoogle-avy)
       ;; ivy-occur requires some special handling
-      (rebind #'ivy-occur #'ivy-hoogle-occur))
+      (rebind 'ivy-occur #'ivy-hoogle-occur))
     (ivy-read
      "Hoogle: "
      #'ivy-hoogle--candidates
