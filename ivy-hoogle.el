@@ -152,6 +152,9 @@ fetch candidates synchronously.")
 the buffer has already been initialized.")
 
 (defun ivy-hoogle--group-by (elems key-fn)
+  "Group elements of a list on the keys returned by the key
+function. Return the list of pairs (key . group) preserving the
+order of elements in the original list."
   (let ((groups (make-hash-table :test #'equal))
         (keys (mapcar key-fn elems)))
     (cl-loop for (key . elem) in (cl-mapcar #'cons keys elems)
@@ -167,6 +170,8 @@ the buffer has already been initialized.")
              finally return (nreverse result))))
 
 (defun ivy-hoogle--format-sources (sources)
+  "Format sources grouped on the package name into a string of the
+form 'package1 Module1, Module2, package2 ..'"
   (let ((sources-by-package (ivy-hoogle--group-by sources #'ivy-hoogle-source-package)))
     (cl-loop for (package . package-sources) in sources-by-package
              when package
@@ -177,6 +182,10 @@ the buffer has already been initialized.")
              finally return (string-join result ", "))))
 
 (defun ivy-hoogle--group-results (results)
+  "Group identical results. Two results are considered identical if
+they have identical items and documentation. Return only unique
+results, but attach the sources that contributed into each one of
+them."
   (let* ((key-fn (lambda (result)
                    (cons (ivy-hoogle-result-item result)
                          (ivy-hoogle-result-doc-html result))))
@@ -189,18 +198,24 @@ the buffer has already been initialized.")
                result))))
 
 (defun ivy-hoogle--shorten (str width)
+  "Truncate a string if it's longer than a certain width. Add
+ellipses at the end."
   (let ((len (length str)))
     (cond ((>= width len) str)
           ((< width 10) "")
           (t (concat (substring str 0 (- width 1)) "…")))))
 
 (defun ivy-hoogle--display-candidate-set-sources (candidate sources)
+  "Attach the sources to a rendered candidate."
   (put-text-property 0 1 'sources sources candidate))
 
 (defun ivy-hoogle--display-candidate-get-sources (candidate)
+  "Get sources from a rendered candidate."
   (get-text-property 0 'sources candidate))
 
 (defun ivy-hoogle--display-candidate (candidate)
+  "Prepare a result to be displayed in the minibuffer. The item is
+fontified, the sources are formatted and attached to the result."
   (let ((result (ivy-hoogle-candidate-result candidate)))
     (if (null result)
         candidate
@@ -216,6 +231,9 @@ the buffer has already been initialized.")
       (copy-sequence (ivy-hoogle-candidate-formatted candidate)))))
 
 (defun ivy-hoogle--format-candidate (width candidate)
+  "Format a candidate (as returned by
+`ivy-hoogle--display-candidate') to actually be displayed in the
+minibuffer."
   (let ((sources (ivy-hoogle--display-candidate-get-sources candidate)))
     (if (null sources)
         candidate
@@ -230,6 +248,7 @@ the buffer has already been initialized.")
                     (ivy--add-face sources 'ivy-hoogle-candidate-source-face))))))))
 
 (defun ivy-hoogle--format-candidates (candidates)
+  "Format candidates in the supplied list."
   (let ((width (- (window-width)
                   ;; leave one extra column on the right when running in the
                   ;; terminal, otherwise the candidates will have a
@@ -240,6 +259,7 @@ the buffer has already been initialized.")
             candidates)))
 
 (defun ivy-hoogle--format-function (candidates)
+  "Format all candidates into a single multi-line string."
   (let ((formatted (ivy-hoogle--format-candidates candidates)))
     (ivy--format-function-generic
      (lambda (str) (ivy--add-face str 'ivy-current-match))
@@ -248,6 +268,7 @@ the buffer has already been initialized.")
      "\n")))
 
 (defun ivy-hoogle--parse-result (line)
+  "Parse a result from a single line of output."
   (let* ((parsed (json-parse-string line))
          (item (gethash "item" parsed))
          (url (gethash "url" parsed))
@@ -267,12 +288,14 @@ the buffer has already been initialized.")
          :sources (list source))))))
 
 (defun ivy-hoogle--process-args (query)
+  "Command-line flags and arguments to pass to the hoogle executable."
   `("search"
     "--count" ,(number-to-string ivy-hoogle-num-candidates)
     "--jsonl"
     ,query))
 
 (defun ivy-hoogle--process-read-candidates (process)
+  "Read query results from the hoogle process."
   (let* ((output (with-current-buffer (process-buffer process) (buffer-string)))
          (lines (string-lines output t)))
     (cl-loop for line in lines
@@ -283,6 +306,8 @@ the buffer has already been initialized.")
                                     (ivy-hoogle--group-results results)))))
 
 (defun ivy-hoogle--on-finish (process)
+  "Read results from the hoogle process, update minibuffer, clean
+up after the process."
   (let ((candidates (or (ivy-hoogle--process-read-candidates process)
                         (ivy-hoogle--no-results))))
     (ivy-hoogle--cache-candidates ivy-hoogle--process-query candidates)
@@ -295,6 +320,7 @@ the buffer has already been initialized.")
     (ivy-hoogle--cleanup-process)))
 
 (defun ivy-hoogle--start-hoogle (query)
+  "Start a hoogle process for a query."
   (ivy-hoogle--cleanup-timer)
   (ivy-hoogle--cleanup-process)
   (setq ivy-hoogle--process-query query)
@@ -306,10 +332,12 @@ the buffer has already been initialized.")
                (ivy-hoogle--process-args query))))
 
 (defun ivy-hoogle--call-hoogle-sync-set-candidates (process)
+  "Store the results of a synchronous query."
   (let ((candidates (ivy-hoogle--process-read-candidates process)))
     (setq ivy-hoogle--sync-candidates candidates)))
 
 (defun ivy-hoogle--call-hoogle-sync (query)
+  "Get the results for a query synchronously."
   (let ((process (apply 'async-start-process
                         "hoogle"
                         "hoogle"
@@ -321,6 +349,7 @@ the buffer has already been initialized.")
     ivy-hoogle--sync-candidates))
 
 (defun ivy-hoogle--queue-update (query)
+  "Request an asynchronous update for a query."
   (ivy-hoogle--cleanup-timer)
   (ivy-hoogle--cleanup-process)
   (setq ivy-hoogle--timer
@@ -330,16 +359,20 @@ the buffer has already been initialized.")
          'ivy-hoogle--start-hoogle query)))
 
 (defun ivy-hoogle--cleanup nil
+  "Cleanup after an invocation of `ivy-hoogle'. Clears the cache,
+disarms the timer, kills the update process."
   (clrhash ivy-hoogle--cache)
   (ivy-hoogle--cleanup-timer)
   (ivy-hoogle--cleanup-process))
 
 (defun ivy-hoogle--cleanup-timer nil
+  "Disarm the update timer."
   (when ivy-hoogle--timer
     (cancel-timer ivy-hoogle--timer)
     (setq ivy-hoogle--timer nil)))
 
 (defun ivy-hoogle--cleanup-process nil
+  "Kill the update process."
   (setq ivy-hoogle--process-query nil)
   (when ivy-hoogle--process
     (delete-process ivy-hoogle--process)
@@ -347,12 +380,20 @@ the buffer has already been initialized.")
     (setq ivy-hoogle--process nil)))
 
 (defun ivy-hoogle--cached-candidates (query)
+  "Fetch the cached candidates for a given query."
   (gethash query ivy-hoogle--cache))
 
 (defun ivy-hoogle--cache-candidates (query candidates)
+  "Update the cached candidates for a given query."
   (puthash ivy-hoogle--process-query candidates ivy-hoogle--cache))
 
 (defun ivy-hoogle--candidates (query)
+  "Called by `ivy-read' whenever the user updates the query. The
+function will check for a cached result first. If no such result
+is found, the function will queue an update. After there's no
+more input for more than `ivy-hoogle-delay-ms' milliseconds, a
+hoogle process is started and, when it's done, the results are
+displayed in the minibuffer."
   (let* ((query (string-trim query))
          (cached (ivy-hoogle--cached-candidates query)))
     (cond ((equal query "")
