@@ -176,19 +176,17 @@ the buffer has already been initialized.")
              into result
              finally return (string-join result ", "))))
 
-(defun ivy-hoogle--merge-results (results)
-  (let ((result (car results))
-        (sources (apply #'append (mapcar #'ivy-hoogle-result-sources results))))
-    (setf (ivy-hoogle-result-sources result) sources)
-    result))
-
 (defun ivy-hoogle--group-results (results)
   (let* ((key-fn (lambda (result)
                    (cons (ivy-hoogle-result-item result)
                          (ivy-hoogle-result-doc-html result))))
          (groups (ivy-hoogle--group-by results key-fn)))
     (cl-loop for (_ . group) in groups
-             collect (ivy-hoogle--merge-results group))))
+             collect
+             (let ((result (car group))
+                   (sources (apply #'append (mapcar #'ivy-hoogle-result-sources group))))
+               (setf (ivy-hoogle-result-sources result) sources)
+               result))))
 
 (defun ivy-hoogle--set-candidates (candidates)
   ;; ivy does not update this variable for dynamic collections for some
