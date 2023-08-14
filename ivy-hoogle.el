@@ -594,8 +594,8 @@ current point in the active buffer."
 (defun ivy-hoogle--follow-url (button)
   "An action that is called when a link to an external URL is
 activated."
+  (goto-char (button-start button))
   (save-excursion
-    (goto-char (button-start button))
     (shr-browse-url t)))
 
 (defun ivy-hoogle--make-xref-link (target)
