@@ -706,22 +706,26 @@ modules on Hackage."
              when package
              do
              (progn
+               (unless first
+                 (insert ", "))
+               (setq first nil)
                (let ((package-url
                       (first (seq-remove #'null
                                          (mapcar #'ivy-hoogle-source-package-url
                                                  package-sources)))))
-                 (when package-url
-                   (unless first
-                     (insert ", "))
-                   (setq first nil)
-                   (ivy-hoogle--make-url-link package package-url)
-                   (cl-loop for source in package-sources
-                            when (and source
-                                      (ivy-hoogle-source-module-url source))
-                            do
-                            (insert " ")
-                            (ivy-hoogle--make-url-link (ivy-hoogle-source-module source)
-                                                       (ivy-hoogle-source-module-url source)))))))
+                 (if package-url
+                     (ivy-hoogle--make-url-link package package-url)
+                   (insert package))
+
+                 (cl-loop for source in package-sources
+                          when source
+                          do
+                          (insert " ")
+                          (let ((module (ivy-hoogle-source-module source))
+                                (module-url (ivy-hoogle-source-module-url source)))
+                                (if module-url
+                                    (ivy-hoogle--make-url-link module module-url)
+                                  (insert module)))))))
 
     ;; add a new line only if we inserted something in the buffer above
     (unless (equal start (point))
