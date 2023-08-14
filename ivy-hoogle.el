@@ -77,9 +77,15 @@ buffer"
   (package
    nil
    :documentation "The name of the package where the candidate is defined")
+  (package-url
+   nil
+   :documentation "The URL linking to the package")
   (module
    nil
-   :documentation "The name of the module where the candidate is defined"))
+   :documentation "The name of the module where the candidate is defined")
+  (module-url
+   nil
+   :documentation "The URL linking to the module"))
 
 (cl-defstruct ivy-hoogle-result
   "A Hoogle result."
@@ -278,14 +284,18 @@ minibuffer."
          (url (gethash "url" parsed))
          (module-obj (gethash "module" parsed (make-hash-table)))
          (module (gethash "name" module-obj))
+         (module-url (gethash "url" module-obj))
          (package-obj (gethash "package" parsed (make-hash-table)))
          (package (gethash "name" package-obj))
+         (package-url (gethash "url" package-obj))
          (doc-html (gethash "docs" parsed)))
     (when (and item url)
       (let ((source (make-ivy-hoogle-source
                      :url url
                      :module module
-                     :package package)))
+                     :module-url module-url
+                     :package package
+                     :package-url package-url)))
         (make-ivy-hoogle-result
          :item item
          :doc-html doc-html
@@ -566,6 +576,13 @@ link or a link to the definition that will pop in a new
            (ivy-hoogle--make-xref-link target))
           (t (shr-generic dom)))))
 
+(defun ivy-hoogle--make-url-link (text url)
+  "Insert `text' in the current buffer and turn it into a link to
+`url'."
+  (let ((start (point)))
+    (insert text)
+    (ivy-hoogle--urlify start url)))
+
 (defun ivy-hoogle--urlify (start url)
   "Attaches an external link to the text between `start' and the
 current point in the active buffer."
@@ -679,8 +696,9 @@ See `ivy-hoogle--render-sources'."
       (not (looking-at ", ")))))
 
 (defun ivy-hoogle--render-sources (width sources)
-  "Render candidate source packages and modules in the help
-buffer and make them into xref links."
+  "Render candidate source packages and modules in the help buffer
+and turn them into external links to the corresponding packages and
+modules on Hackage."
   (let ((sources-by-package (ivy-hoogle--group-by sources #'ivy-hoogle-source-package))
         (start (point))
         (first t))
@@ -688,15 +706,22 @@ buffer and make them into xref links."
              when package
              do
              (progn
-               (unless first
-                 (insert ", "))
-               (setq first nil)
-               (let ((modules (seq-remove #'null
-                                          (mapcar #'ivy-hoogle-source-module package-sources))))
-                 (ivy-hoogle--make-xref-link package)
-                 (dolist (module modules)
-                   (insert " ")
-                   (ivy-hoogle--make-xref-link module)))))
+               (let ((package-url
+                      (first (seq-remove #'null
+                                         (mapcar #'ivy-hoogle-source-package-url
+                                                 package-sources)))))
+                 (when package-url
+                   (unless first
+                     (insert ", "))
+                   (setq first nil)
+                   (ivy-hoogle--make-url-link package package-url)
+                   (cl-loop for source in package-sources
+                            when (and source
+                                      (ivy-hoogle-source-module-url source))
+                            do
+                            (insert " ")
+                            (ivy-hoogle--make-url-link (ivy-hoogle-source-module source)
+                                                       (ivy-hoogle-source-module-url source)))))))
 
     ;; add a new line only if we inserted something in the buffer above
     (unless (equal start (point))
