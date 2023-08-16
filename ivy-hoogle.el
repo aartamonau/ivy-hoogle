@@ -1,6 +1,5 @@
 (require 'async)
 (require 'button)
-(require 'cl)
 (require 'cl-lib)
 (require 'font-lock)
 (require 'ivy)
@@ -730,9 +729,9 @@ modules on Hackage."
                  (insert ", "))
                (setq first nil)
                (let ((package-url
-                      (first (seq-remove #'null
-                                         (mapcar #'ivy-hoogle-source-package-url
-                                                 package-sources)))))
+                      (cl-first (seq-remove #'null
+                                            (mapcar #'ivy-hoogle-source-package-url
+                                                    package-sources)))))
                  (if package-url
                      (ivy-hoogle--make-url-link package package-url)
                    (insert package))
