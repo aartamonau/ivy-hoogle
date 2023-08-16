@@ -1,5 +1,6 @@
 (require 'async)
 (require 'button)
+(require 'cl)
 (require 'cl-lib)
 (require 'font-lock)
 (require 'ivy)
@@ -27,7 +28,8 @@ be ignored."
 (defcustom ivy-hoogle-fontify-code-as-haskell t
   "When non-nil, fontify code blocks as haskell using
 `haskell-mode'. Will only have effect if
-`ivy-hoogle-use-haskell-fontify' is non-nil.")
+`ivy-hoogle-use-haskell-fontify' is non-nil."
+  :type 'boolean)
 
 (defcustom ivy-hoogle-help-reserved-characters 10
   "Reserve these many characters in the help window when displaying
