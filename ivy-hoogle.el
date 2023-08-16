@@ -63,12 +63,6 @@ available)"
 buffer"
   :group 'ivy-hoogle-appearance)
 
-(defvar ivy-hoogle-link-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map "\r" #'push-button)
-    map)
-  "The keymap attached to links in the help buffer.")
-
 (cl-defstruct ivy-hoogle-source
   "One source where a specific candidate can be found."
   (url
@@ -589,7 +583,7 @@ current point in the active buffer."
   (shr-urlify start url)
   (add-text-properties start (point)
                        (list 'action #'ivy-hoogle--follow-url
-                             'keymap ivy-hoogle-link-map)))
+                             'keymap button-map)))
 
 (defun ivy-hoogle--follow-url (button)
   "An action that is called when a link to an external URL is
@@ -602,17 +596,11 @@ activated."
   "Insert `target' in the current buffer and make it into an xref
 link."
   (let ((start (point)))
-    (insert target)
-    (font-lock-append-text-property start (point) 'face 'ivy-hoogle-doc-xref-link-face)
-    (add-text-properties
-     start (point)
-     (list 'button t
-           'ivy-hoogle-query target
-           'help-echo (format "Search hoogle for \"%s\"" target)
-           'category 'ivy-hoogle
-           'mouse-face (list 'highlight)
-           'action #'ivy-hoogle--follow-xref-link
-           'keymap ivy-hoogle-link-map))))
+    (insert-text-button target
+                        'face 'ivy-hoogle-doc-xref-link-face
+                        'ivy-hoogle-query target
+                        'help-echo (format "Search hoogle for \"%s\"" target)
+                        'action #'ivy-hoogle--follow-xref-link)))
 
 (defun ivy-hoogle--follow-xref-link (button)
   "An action that is called when a link to a different haskell
