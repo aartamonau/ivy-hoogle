@@ -24,6 +24,11 @@ candidates. If `haskell-font-lock' is unavailable, the value will
 be ignored."
   :type 'boolean)
 
+(defcustom ivy-hoogle-fontify-code-as-haskell t
+  "When non-nil, fontify code blocks as haskell using
+`haskell-mode'. Will only have effect if
+`ivy-hoogle-use-haskell-fontify' is non-nil.")
+
 (defcustom ivy-hoogle-help-reserved-characters 10
   "Reserve these many characters in the help window when displaying
 documentation for the selected candidate. The rendered
@@ -214,8 +219,8 @@ ellipses at the end."
   "Get sources from a rendered candidate."
   (get-text-property 0 'sources candidate))
 
-(defun ivy-hoogle--haskell-mode-fontify (str default-face)
-  (if (or (not ivy-hoogle-use-haskell-fontify)
+(defun ivy-hoogle--haskell-mode-fontify (do-fontify str default-face)
+  (if (or (not do-fontify)
           (null (require 'haskell-font-lock nil 'noerror)))
       (progn (font-lock-append-text-property 0 (length str) 'face default-face str)
              str)
@@ -233,7 +238,10 @@ fontified, the sources are formatted and attached to the result."
       (unless (ivy-hoogle-candidate-formatted candidate)
         (let* ((item (ivy-hoogle-result-item result))
                (sources (ivy-hoogle--format-sources (ivy-hoogle-result-sources result)))
-               (formatted (ivy-hoogle--haskell-mode-fontify item 'ivy-hoogle-candidate-face)))
+               (formatted
+                (ivy-hoogle--haskell-mode-fontify ivy-hoogle-use-haskell-fontify
+                                                  item
+                                                  'ivy-hoogle-candidate-face)))
           (ivy-hoogle--display-candidate-set-sources formatted sources)
           (setf (ivy-hoogle-candidate-formatted candidate) formatted)))
       (copy-sequence (ivy-hoogle-candidate-formatted candidate)))))
@@ -520,28 +528,46 @@ current query. But it only does so after
     (forward-line 1)))
 
 (defun ivy-hoogle--render-tag-pre (dom)
-  "Renders <pre> tags as code using `ivy-hoogle-doc-code-face'. If
+  "Renders <pre> tags as code. If both
+`ivy-hoogle-use-haskell-fontify' and
+`ivy-hoogle-fontify-code-as-haskell' are non-nil, uses
+`haskell-mode' to fontify the code block. Otherwise, simply adds
+`ivy-hoogle-doc-code-face' to the contents of the code block. If
 it looks like the tag is standalone (not surrounded by text on
 the same line), horizontal bars are rendered around the code
 block to make it standout more."
   (let ((start (point))
         (inline (not (looking-at "^\s*$"))))
-    (if inline
-        ;; <pre> appears both as an inline tag and a block tag; in the former
-        ;; case, we don't want any new lines and separators inserted
-        ;;
-        ;; for now, assume that <pre> is inline if there's anything on the
-        ;; same line that precedes it;
-        ;;
-        ;; TODO: what if there's nothing before the tag, but there's something
-        ;; after it?
-        (shr-generic dom)
-      (shr-tag-hr nil)
-      (shr-tag-pre dom)
-      (flush-lines "^\s*$" start (point-max))
-      (goto-char (point-max))
-      (shr-tag-hr nil))
-    (font-lock-append-text-property start (point-max) 'face 'ivy-hoogle-doc-code-face)))
+    (cl-flet ((insert-fontified (fn)
+                                (insert (ivy-hoogle--haskell-mode-fontify
+                                         (and ivy-hoogle-use-haskell-fontify
+                                              ivy-hoogle-fontify-code-as-haskell)
+                                         (with-temp-buffer
+                                           (funcall fn)
+                                           (buffer-substring (point-min) (point-max)))
+                                         'ivy-hoogle-doc-code-face)))
+              (hr ()
+                  (let ((start (point)))
+                    (shr-tag-hr nil)
+                    (font-lock-append-text-property start (point)
+                                                    'face 'ivy-hoogle-doc-code-face))))
+
+      (if inline
+          ;; <pre> appears both as an inline tag and a block tag; in the former
+          ;; case, we don't want any new lines and separators inserted
+          ;;
+          ;; for now, assume that <pre> is inline if there's anything on the
+          ;; same line that precedes it;
+          ;;
+          ;; TODO: what if there's nothing before the tag, but there's something
+          ;; after it?
+          (insert-fontified (lambda () (shr-generic dom)))
+        (hr)
+        (insert-fontified
+         (lambda ()
+           (shr-tag-pre dom)
+           (flush-lines "^\s*$" (point-min) (point-max))))
+        (hr)))))
 
 (defun ivy-hoogle--render-tag-tt (dom)
   "Renders <tt> tags as code using `ivy-hoogle-doc-code-face'."
