@@ -47,7 +47,7 @@ available)"
   :group 'ivy-hoogle-appearance)
 
 (defface ivy-hoogle-candidate-face
-  '((t :inherit default))
+  '((t :inherit (fixed-pitch minibuffer-prompt)))
   "Face used to display the candidate when
 `ivy-hoogle-use-haskell-fontify' is not `t'"
   :group 'ivy-hoogle-appearance)
@@ -214,6 +214,16 @@ ellipses at the end."
   "Get sources from a rendered candidate."
   (get-text-property 0 'sources candidate))
 
+(defun ivy-hoogle--haskell-mode-fontify (str default-face)
+  (if (or (not ivy-hoogle-use-haskell-fontify)
+          (null (require 'haskell-font-lock nil 'noerror)))
+      (progn (font-lock-append-text-property 0 (length str) 'face default-face str)
+             str)
+    ;; work around a native compilation warning about
+    ;; haskell-fontify-as-mode not known to be defined
+    (when (fboundp 'haskell-fontify-as-mode)
+      (haskell-fontify-as-mode str 'haskell-mode))))
+
 (defun ivy-hoogle--display-candidate (candidate)
   "Prepare a result to be displayed in the minibuffer. The item is
 fontified, the sources are formatted and attached to the result."
@@ -223,13 +233,7 @@ fontified, the sources are formatted and attached to the result."
       (unless (ivy-hoogle-candidate-formatted candidate)
         (let* ((item (ivy-hoogle-result-item result))
                (sources (ivy-hoogle--format-sources (ivy-hoogle-result-sources result)))
-               (formatted (if (or (not ivy-hoogle-use-haskell-fontify)
-                                  (null (require 'haskell-font-lock nil 'noerror)))
-                                (ivy--add-face item 'ivy-hoogle-candidate-face)
-                            ;; work around a native compilation warning about
-                            ;; haskell-fontify-as-mode not known to be defined
-                            (when (fboundp 'haskell-fontify-as-mode)
-                              (haskell-fontify-as-mode item 'haskell-mode)))))
+               (formatted (ivy-hoogle--haskell-mode-fontify item 'ivy-hoogle-candidate-face)))
           (ivy-hoogle--display-candidate-set-sources formatted sources)
           (setf (ivy-hoogle-candidate-formatted candidate) formatted)))
       (copy-sequence (ivy-hoogle-candidate-formatted candidate)))))
