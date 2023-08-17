@@ -854,7 +854,10 @@ more details."
 (defun ivy-hoogle-thing-at-point nil
   "Query Hoogle for the symbol at point."
   (interactive)
-  (ivy-hoogle (substring-no-properties (thing-at-point 'symbol))))
+  (let ((thing (thing-at-point 'symbol t)))
+    (if thing
+        (ivy-hoogle thing)
+      (user-error "No symbol at point"))))
 
 ;; TODO: ivy-resume does not restore the position properly (try Control.Monad.Identity)
 (ivy-configure 'ivy-hoogle
