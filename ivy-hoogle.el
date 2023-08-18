@@ -60,7 +60,17 @@ available)"
 
 (defface ivy-hoogle-doc-code-face
   '((t :inherit (fixed-pitch font-lock-function-name-face)))
-  "Face used to display code blocks in the documentation buffer"
+  "Face used to display text in code blocks in the documentation
+buffer. Applied only if `ivy-hoogle-fontify-code-as-haskell' is
+`nil' or `haskell-mode' could not be found."
+  :group 'ivy-hoogle-appearance)
+
+(defface ivy-hoogle-doc-code-background-face
+  '((((class color) (background light))
+     :background "#d3d3d3" :extend t)
+    (((class color) (background dark))
+     :background "#333333" :extend t))
+  "Background applied to code blocks in the documentation buffer."
   :group 'ivy-hoogle-appearance)
 
 (defface ivy-hoogle-doc-xref-link-face
@@ -535,8 +545,9 @@ current query. But it only does so after
 `haskell-mode' to fontify the code block. Otherwise, simply adds
 `ivy-hoogle-doc-code-face' to the contents of the code block. If
 it looks like the tag is standalone (not surrounded by text on
-the same line), horizontal bars are rendered around the code
-block to make it standout more."
+the same line). In either case,
+`ivy-hoogle-doc-code-background-face' is applied to the rendered
+code block."
   (let ((start (point))
         (inline (not (looking-at "^\s*$"))))
     (cl-flet ((insert-fontified (fn)
@@ -546,12 +557,7 @@ block to make it standout more."
                                          (with-temp-buffer
                                            (funcall fn)
                                            (buffer-substring (point-min) (point-max)))
-                                         'ivy-hoogle-doc-code-face)))
-              (hr ()
-                  (let ((start (point)))
-                    (shr-tag-hr nil)
-                    (font-lock-append-text-property start (point)
-                                                    'face 'ivy-hoogle-doc-code-face))))
+                                         'ivy-hoogle-doc-code-face))))
 
       (if inline
           ;; <pre> appears both as an inline tag and a block tag; in the former
@@ -563,12 +569,12 @@ block to make it standout more."
           ;; TODO: what if there's nothing before the tag, but there's something
           ;; after it?
           (insert-fontified (lambda () (shr-generic dom)))
-        (hr)
         (insert-fontified
          (lambda ()
            (shr-tag-pre dom)
            (flush-lines "^\s*$" (point-min) (point-max))))
-        (hr)))))
+        (font-lock-append-text-property start (point)
+                                        'face 'ivy-hoogle-doc-code-background-face)))))
 
 (defun ivy-hoogle--render-tag-tt (dom)
   "Renders <tt> tags as code using `ivy-hoogle-doc-code-face'."
