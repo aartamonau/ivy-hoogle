@@ -538,8 +538,8 @@ current query. But it only does so after
     (goto-char (point-min))
     (forward-line 1)))
 
-(defun ivy-hoogle--render-tag-pre (dom)
-  "Renders <pre> tags as code. If both
+(defun ivy-hoogle--render-code (dom)
+  "Renders <pre> and <tt> tags as code. If both
 `ivy-hoogle-use-haskell-fontify' and
 `ivy-hoogle-fontify-code-as-haskell' are non-nil, uses
 `haskell-mode' to fontify the code block. Otherwise, simply adds
@@ -572,15 +572,9 @@ code block."
         (insert-fontified
          (lambda ()
            (shr-tag-pre dom)
-           (flush-lines "^\s*$" (point-min) (point-max))))
-        (font-lock-append-text-property start (point)
-                                        'face 'ivy-hoogle-doc-code-background-face)))))
-
-(defun ivy-hoogle--render-tag-tt (dom)
-  "Renders <tt> tags as code using `ivy-hoogle-doc-code-face'."
-  (let ((start (point)))
-    (shr-tag-code dom)
-    (font-lock-append-text-property start (point-max) 'face 'ivy-hoogle-doc-code-face)))
+           (flush-lines "^\s*$" (point-min) (point-max)))))
+      (font-lock-append-text-property start (point)
+                                      'face 'ivy-hoogle-doc-code-background-face))))
 
 (defun ivy-hoogle--render-tag-a (dom)
   "A custom renderer for <a> tags. Will create either an external
@@ -657,8 +651,8 @@ documentation string may contain html tags and is rendered using
         (shr-current-font 'fixed-pitch)
         (start (point))
         (shr-external-rendering-functions
-         `((pre . ivy-hoogle--render-tag-pre)
-           (tt . ivy-hoogle--render-tag-tt)
+         `((pre . ivy-hoogle--render-code)
+           (tt . ivy-hoogle--render-code)
            (a . ivy-hoogle--render-tag-a))))
     (insert doc)
     (goto-char start)
