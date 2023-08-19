@@ -624,14 +624,17 @@ activated."
   (save-excursion
     (shr-browse-url t)))
 
+(define-button-type 'ivy-hoogle-xref-link
+  'face 'ivy-hoogle-doc-xref-link-face
+  'action #'ivy-hoogle--follow-xref-link)
+
 (defun ivy-hoogle--make-xref-link (target)
   "Insert `target' in the current buffer and make it into an xref
 link."
   (insert-text-button target
-                      'face 'ivy-hoogle-doc-xref-link-face
+                      'type 'ivy-hoogle-xref-link
                       'ivy-hoogle-query target
-                      'help-echo (format "Search hoogle for \"%s\"" target)
-                      'action #'ivy-hoogle--follow-xref-link))
+                      'help-echo (format "Search hoogle for \"%s\"" target)))
 
 (defun ivy-hoogle--follow-xref-link (button)
   "An action that is called when a link to a different haskell
