@@ -75,7 +75,7 @@ buffer. Applied only if `ivy-hoogle-fontify-code-as-haskell' is
   :group 'ivy-hoogle-appearance)
 
 (defface ivy-hoogle-doc-xref-link-face
-  '((t :inherit (fixed-pitch font-lock-constant-face underline)))
+  '((t :inherit (fixed-pitch font-lock-constant-face underline) :weight normal))
   "Face used to display links to other functions the documentation
 buffer"
   :group 'ivy-hoogle-appearance)
