@@ -1,3 +1,4 @@
+;; -*- lexical-binding: t; -*-
 (require 'async)
 (require 'button)
 (require 'cl-lib)
