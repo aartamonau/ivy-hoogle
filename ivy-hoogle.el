@@ -818,7 +818,13 @@ more details."
 
 (defun ivy-hoogle--alt-done ()
   "Open documentation for the selected candidate in the browser."
-  (ivy-exit-with-action #'ivy-hoogle--browse-candidate))
+  (ivy-exit-with-action
+   (lambda (candidate)
+     (if (not (ivy-hoogle-candidate-p candidate))
+         ;; if a non-candidate got selected, like the informational "Updating" or
+         ;; "No results", restart selection
+         (ivy-resume)
+       (ivy-hoogle--browse-candidate candidate)))))
 
 ;;;###autoload
 (defun ivy-hoogle (&optional initial)
