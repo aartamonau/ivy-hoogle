@@ -740,7 +740,7 @@ modules on Hackage."
                    (insert package))
 
                  (cl-loop for source in package-sources
-                          when source
+                          when (and source (ivy-hoogle-source-module source))
                           do
                           (insert " ")
                           (let ((module (ivy-hoogle-source-module source))
