@@ -1,4 +1,17 @@
-;; -*- lexical-binding: t; -*-
+;;; ivy-hoogle.el --- Search Hoogle using ivy  -*- lexical-binding: t; -*-
+
+;; Copyright (C) 2023 Aliaksei Artamonau
+
+;; Author: Aliaksei Artamonau <aliaksiej.artamonau@gmail.com>
+;; URL: https://github.com/aartamonau/ivy-hoogle
+;; Version: 0.1.0
+;; Package-Requires: ((emacs "27.2"))
+;; Keywords: matching haskell hoogle
+
+;;; Commentary:
+
+;;; Code:
+
 (require 'async)
 (require 'button)
 (require 'cl-lib)
@@ -889,3 +902,5 @@ more details."
  '(("b" ivy-hoogle--browse-candidate "browse")))
 
 (provide 'ivy-hoogle)
+
+;;; ivy-hoogle.el ends here
