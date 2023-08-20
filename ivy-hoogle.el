@@ -682,7 +682,10 @@ documentation string may contain html tags and is rendered using
                           ivy-hoogle-help-reserved-characters))
                      (or ivy-hoogle-help-max-width
                          shr-width
-                         shr-max-width))))
+                         ;; shr-max-width isn't available in the version of
+                         ;; shr bundled with emacs 27
+                         (and (boundp 'shr-max-width) shr-max-width)
+                         window-width))))
     width))
 
 (defun ivy-hoogle--render-candidate (candidate)
