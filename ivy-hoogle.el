@@ -492,6 +492,7 @@ current query. But it only does so after
 
 (defun ivy-hoogle--occur-function (candidates)
   "Renders candidates in an occur buffer."
+  (setq candidates (or ivy-marked-candidates candidates))
   (setq candidates (cl-remove-if-not #'ivy-hoogle-candidate-p candidates))
 
   (unless ivy-hoogle--occur-initalized
