@@ -272,7 +272,8 @@ ellipses at the end."
 (defun ivy-hoogle--display-candidate (candidate)
   "Prepare a result to be displayed in the minibuffer. The item is
 fontified, the sources are formatted and attached to the result."
-  (let ((result (ivy-hoogle-candidate-result candidate)))
+  (let ((marked (member candidate ivy-marked-candidates))
+        (result (ivy-hoogle-candidate-result candidate)))
     (if (null result)
         candidate
       (unless (ivy-hoogle-candidate-formatted candidate)
@@ -284,7 +285,9 @@ fontified, the sources are formatted and attached to the result."
                                                   'ivy-hoogle-candidate-face)))
           (ivy-hoogle--display-candidate-set-sources formatted sources)
           (setf (ivy-hoogle-candidate-formatted candidate) formatted)))
-      (copy-sequence (ivy-hoogle-candidate-formatted candidate)))))
+      (concat
+       (when marked ivy-mark-prefix)
+       (copy-sequence (ivy-hoogle-candidate-formatted candidate))))))
 
 (defun ivy-hoogle--format-candidate (width candidate)
   "Format a candidate (as returned by
