@@ -459,30 +459,38 @@ more input for more than `ivy-hoogle-delay-ms' milliseconds, a
 hoogle process is started and, when it's done, the results are
 displayed in the minibuffer."
   (let* ((query (string-trim query))
-         (cached (ivy-hoogle--cached-candidates query)))
-    (cond ((equal query "")
-           (ivy-hoogle--cancel-update)
-           ;; show "No results" message on empty input
-           (ivy-hoogle--no-results))
-          (cached
-           (ivy-hoogle--cancel-update)
-           ;; return the cached result if it's present
-           cached)
-          ((eq ivy-hoogle--fetch-mode 'sync)
-           ;; don't cache results here because the cache is only cleaned
-           ;; up if ivy-hoogle--candidates is called from the
-           ;; minibuffer, so caching would introduce a space leak
-           (ivy-hoogle--call-hoogle-sync query))
-          ((equal (ivy-state-initial-input ivy-last) query)
-           ;; when ivy-hoogle is called with initial input, do the first
-           ;; fetch synchronously
-           (let ((candidates (ivy-hoogle--call-hoogle-sync query)))
-             ;; also cache the result
-             (ivy-hoogle--cache-candidates query candidates)))
-          (t
-           ;; otherwise, fetch asynchronously
-           (ivy-hoogle--queue-update query)
-           (ivy-hoogle--updating)))))
+         (cached (ivy-hoogle--cached-candidates query))
+         candidates)
+    (setq candidates
+          (cond ((equal query "")
+                 (ivy-hoogle--cancel-update)
+                 ;; show "No results" message on empty input
+                 (ivy-hoogle--no-results))
+                (cached
+                 (ivy-hoogle--cancel-update)
+                 ;; return the cached result if it's present
+                 cached)
+                ((eq ivy-hoogle--fetch-mode 'sync)
+                 ;; don't cache results here because the cache is only cleaned
+                 ;; up if ivy-hoogle--candidates is called from the
+                 ;; minibuffer, so caching would introduce a space leak
+                 (ivy-hoogle--call-hoogle-sync query))
+                ((equal (ivy-state-initial-input ivy-last) query)
+                 ;; when ivy-hoogle is called with initial input, do the first
+                 ;; fetch synchronously
+                 (let ((candidates (ivy-hoogle--call-hoogle-sync query)))
+                   ;; also cache the result
+                   (ivy-hoogle--cache-candidates query candidates)))
+                (t
+                 ;; otherwise, fetch asynchronously
+                 (ivy-hoogle--queue-update query)
+                 (ivy-hoogle--updating))))
+
+    ;; just like in ivy-hoogle--on-finish, we need to set ivy--old-cands
+    ;; explicitly, because ivy does not do this for dynamic collections
+    (setq ivy--old-cands candidates)
+
+    candidates))
 
 (defun ivy-hoogle--updating nil
   "A candidate list indicating that no results are available yet."
