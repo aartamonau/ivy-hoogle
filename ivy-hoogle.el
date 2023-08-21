@@ -265,7 +265,7 @@ ellipses at the end."
       (progn (font-lock-append-text-property 0 (length str) 'face default-face str)
              str)
     ;; work around a native compilation warning about
-    ;; haskell-fontify-as-mode not known to be defined
+    ;; `haskell-fontify-as-mode' not known to be defined
     (when (fboundp 'haskell-fontify-as-mode)
       (haskell-fontify-as-mode str 'haskell-mode))))
 
@@ -377,7 +377,7 @@ up after the process."
     ;; ivy does not update this variable for dynamic collections for some
     ;; reason, so I need to cheat and do it myself
     ;;
-    ;; otherwise things like ivy-resume and ivy-restrict-to-matches don't work
+    ;; otherwise things like `ivy-resume' and `ivy-restrict-to-matches' don't work
     (setq ivy--old-cands candidates)
     ;; Don't preserve marks when input changes.
     (setq ivy-marked-candidates nil)
@@ -477,11 +477,11 @@ displayed in the minibuffer."
                  cached)
                 ((eq ivy-hoogle--fetch-mode 'sync)
                  ;; don't cache results here because the cache is only cleaned
-                 ;; up if ivy-hoogle--candidates is called from the
+                 ;; up if `ivy-hoogle--candidates' is called from the
                  ;; minibuffer, so caching would introduce a space leak
                  (ivy-hoogle--call-hoogle-sync query))
                 ((equal (ivy-state-initial-input ivy-last) query)
-                 ;; when ivy-hoogle is called with initial input, do the first
+                 ;; when `ivy-hoogle' is called with initial input, do the first
                  ;; fetch synchronously
                  (let ((candidates (ivy-hoogle--call-hoogle-sync query)))
                    ;; also cache the result
@@ -491,7 +491,7 @@ displayed in the minibuffer."
                  (ivy-hoogle--queue-update query)
                  (ivy-hoogle--updating))))
 
-    ;; just like in ivy-hoogle--on-finish, we need to set ivy--old-cands
+    ;; just like in `ivy-hoogle--on-finish', we need to set `ivy--old-cands'
     ;; explicitly, because ivy does not do this for dynamic collections
     (setq ivy--old-cands candidates)
     ;; Don't preserve marks when input changes.
@@ -516,7 +516,7 @@ displayed in the minibuffer."
   "Highlights the parts of a rendered candidate that match the
 current query. But it only does so after
 `ivy-restrict-to-matches' was called."
-  ;; When ivy-restrict-to-matches is called, it resets dynamic-collection to
+  ;; When `ivy-restrict-to-matches' is called, it resets dynamic-collection to
   ;; false. This implementation detail is used to determine whether to
   ;; highlight the matching bits in the output:
   ;;
@@ -524,7 +524,7 @@ current query. But it only does so after
   ;;     there's not necessarily an obvious correspondence between the input
   ;;     and the outputs
   ;;
-  ;;   - once ivy-restrict-to-matches was called, we're back to pure
+  ;;   - once `ivy-restrict-to-matches' was called, we're back to pure
   ;;     text-based matching, so highlighting is actually useful
   ;;
   ;; I could not find any other way to achieve this behavior but to rely on
@@ -574,8 +574,8 @@ current query. But it only does so after
                      help-echo "mouse-1: call ivy-action")
                    displayed)
                   ;; need place 4 spaces in front of the candidate, because
-                  ;; otherwise ivy-occur won't recognize it (see
-                  ;; ivy-occur-press)
+                  ;; otherwise `ivy-occur' won't recognize it (see
+                  ;; `ivy-occur-press')
                   (insert "    " displayed ?\n)))
 
     ;; go to the first match
@@ -692,8 +692,9 @@ for the user to select the specific definition."
   "Render the candidate's documentation in the current buffer. The
 documentation string may contain html tags and is rendered using
 `shr'."
-  (let (;; render using a fixed-pitch font by default; unlike (shr-use-fonts
-        ;; nil), it doesn't prevent shr form using italic font when necessary
+  (let (;; render using a fixed-pitch font by default; unlike setting
+        ;; `shr-use-fonts' to `nil', it doesn't prevent `shr' form using italic
+        ;; font when necessary
         (shr-current-font 'fixed-pitch)
         (start (point))
         (shr-external-rendering-functions
@@ -725,7 +726,7 @@ documentation string may contain html tags and is rendered using
                           ivy-hoogle-help-reserved-characters))
                      (or ivy-hoogle-help-max-width
                          shr-width
-                         ;; shr-max-width isn't available in the version of
+                         ;; `shr-max-width' isn't available in the version of
                          ;; shr bundled with emacs 27
                          (and (boundp 'shr-max-width) shr-max-width)
                          window-width))))
@@ -799,7 +800,7 @@ modules on Hackage."
     (unless (equal start (point))
       (insert ?\n ?\n))
 
-    ;; override the face used the face used by ivy-hoogle--make-xref-link
+    ;; override the face used the face used by `ivy-hoogle--make-xref-link'
     (font-lock-prepend-text-property start (point) 'face 'ivy-hoogle-candidate-source-face)
 
     ;; format the sources to fit into the buffer width
@@ -889,9 +890,9 @@ more details."
     (cl-flet ((rebind (command replacement)
                       (cl-loop for key in (where-is-internal command ivy-minibuffer-map)
                                do (define-key map key replacement))))
-      ;; ivy-avy is not supported
+      ;; `ivy-avy' is not supported
       (rebind 'ivy-avy #'ivy-hoogle-avy)
-      ;; ivy-occur requires some special handling
+      ;; `ivy-occur' requires some special handling
       (rebind 'ivy-occur #'ivy-hoogle-occur))
     (ivy-read
      "Hoogle: "
