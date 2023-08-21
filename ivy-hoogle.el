@@ -379,6 +379,8 @@ up after the process."
     ;;
     ;; otherwise things like ivy-resume and ivy-restrict-to-matches don't work
     (setq ivy--old-cands candidates)
+    ;; Don't preserve marks when input changes.
+    (setq ivy-marked-candidates nil)
     (ivy-update-candidates candidates)
     (ivy-hoogle--cleanup-process)))
 
@@ -492,6 +494,8 @@ displayed in the minibuffer."
     ;; just like in ivy-hoogle--on-finish, we need to set ivy--old-cands
     ;; explicitly, because ivy does not do this for dynamic collections
     (setq ivy--old-cands candidates)
+    ;; Don't preserve marks when input changes.
+    (setq ivy-marked-candidates nil)
 
     candidates))
 
