@@ -5,7 +5,7 @@
 ;; Author: Aliaksei Artamonau <aliaksiej.artamonau@gmail.com>
 ;; URL: https://github.com/aartamonau/ivy-hoogle
 ;; Version: 0.1.0
-;; Package-Requires: ((emacs "27.2") (async "1.9"))
+;; Package-Requires: ((emacs "27.2") (async "1.9") (ivy "0.13.2"))
 ;; Keywords: matching haskell hoogle
 
 ;; This file is part of ivy-hoogle.
