@@ -814,6 +814,20 @@ modules on Hackage."
   "Open a help window with the documentation for the passed
 candidate. If the candidate is a fake candidate like that
 returned by `ivy-hoogle--no-results', restart `ivy-hoogle'."
+  ;; Workarond: when the candidate is selected using ivy-avy, all text
+  ;; properties are stripped from it. since all of our metadata lives in text
+  ;; properties, we would just throw such candidate away and restart ivy.
+  ;;
+  ;; To workaround we fetch the candidate using the internal candidate index
+  ;; and list of candidates.
+  (condition-case err
+      (setq candidate
+            (or (nth ivy--index ivy--all-candidates) candidate))
+    (error
+     (display-warning 'ivy-hoogle
+                      (format "Couldn't fetch candidate: %s"
+                              (error-message-string err)))))
+
   (if (not (ivy-hoogle-candidate-p candidate))
       ;; if a non-candidate got selected, like the informational "Updating" or
       ;; "No results", restart selection
@@ -844,11 +858,6 @@ more details."
   (interactive)
   (let ((ivy-hoogle--fetch-mode 'sync))
     (ivy-occur)))
-
-(defun ivy-hoogle-avy ()
-  "Indicate that ivy-avy does not work with ivy-hoogle"
-  (interactive)
-  (user-error "Ivy-hoogle does not support avy integration"))
 
 (defun ivy-hoogle--browse-candidate (candidate)
   "Open documentation for the candidate in the external browser."
@@ -890,8 +899,6 @@ more details."
     (cl-flet ((rebind (command replacement)
                       (cl-loop for key in (where-is-internal command ivy-minibuffer-map)
                                do (define-key map key replacement))))
-      ;; `ivy-avy' is not supported
-      (rebind 'ivy-avy #'ivy-hoogle-avy)
       ;; `ivy-occur' requires some special handling
       (rebind 'ivy-occur #'ivy-hoogle-occur))
     (ivy-read
