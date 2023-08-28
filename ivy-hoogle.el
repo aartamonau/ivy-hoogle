@@ -820,13 +820,14 @@ returned by `ivy-hoogle--no-results', restart `ivy-hoogle'."
   ;;
   ;; To work around we fetch the candidate using the internal candidate index
   ;; and list of candidates.
-  (condition-case err
-      (setq candidate
-            (or (nth ivy--index ivy--all-candidates) candidate))
-    (error
-     (display-warning 'ivy-hoogle
-                      (format "Couldn't fetch candidate: %s"
-                              (error-message-string err)))))
+  (unless (ivy-hoogle-candidate-p candidate)
+    (condition-case err
+        (setq candidate
+              (or (nth ivy--index ivy--all-candidates) candidate))
+      (error
+       (display-warning 'ivy-hoogle
+                        (format "Couldn't fetch candidate: %s"
+                                (error-message-string err))))))
 
   (if (not (ivy-hoogle-candidate-p candidate))
       ;; if a non-candidate got selected, like the informational "Updating" or
