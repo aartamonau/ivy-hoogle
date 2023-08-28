@@ -814,11 +814,11 @@ modules on Hackage."
   "Open a help window with the documentation for the passed
 candidate. If the candidate is a fake candidate like that
 returned by `ivy-hoogle--no-results', restart `ivy-hoogle'."
-  ;; Workarond: when the candidate is selected using ivy-avy, all text
+  ;; Workaround: when the candidate is selected using ivy-avy, all text
   ;; properties are stripped from it. since all of our metadata lives in text
   ;; properties, we would just throw such candidate away and restart ivy.
   ;;
-  ;; To workaround we fetch the candidate using the internal candidate index
+  ;; To work around we fetch the candidate using the internal candidate index
   ;; and list of candidates.
   (condition-case err
       (setq candidate
