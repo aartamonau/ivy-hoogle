@@ -168,7 +168,7 @@ the properties are attached to it as text properties."
 
 (ivy-hoogle-define-candidate-properties formatted result)
 
-(defun make-ivy-hoogle-candidate (result)
+(defun ivy-hoogle-make-candidate (result)
   "Make a string candidate out of a query result. The original
 result is attached to the candidate as a text property."
   (let ((item (ivy-hoogle-result-item result)))
@@ -371,7 +371,7 @@ minibuffer."
              unless (or (string-prefix-p "--" line)
                         (string-prefix-p "No results found" line))
              collect (ivy-hoogle--parse-result line) into results
-             finally return (mapcar #'make-ivy-hoogle-candidate
+             finally return (mapcar #'ivy-hoogle-make-candidate
                                     (ivy-hoogle--group-results results)))))
 
 (defun ivy-hoogle--on-finish (process)
