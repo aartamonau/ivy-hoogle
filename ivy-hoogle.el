@@ -601,13 +601,13 @@ code block."
   (let ((start (point))
         (inline (not (looking-at "^\s*$"))))
     (cl-flet ((insert-fontified (fn)
-                                (insert (ivy-hoogle--haskell-mode-fontify
-                                         (and ivy-hoogle-use-haskell-fontify
-                                              ivy-hoogle-fontify-code-as-haskell)
-                                         (with-temp-buffer
-                                           (funcall fn)
-                                           (buffer-substring (point-min) (point-max)))
-                                         'ivy-hoogle-doc-code-face))))
+                (insert (ivy-hoogle--haskell-mode-fontify
+                         (and ivy-hoogle-use-haskell-fontify
+                              ivy-hoogle-fontify-code-as-haskell)
+                         (with-temp-buffer
+                           (funcall fn)
+                           (buffer-substring (point-min) (point-max)))
+                         'ivy-hoogle-doc-code-face))))
 
       (if inline
           ;; <pre> appears both as an inline tag and a block tag; in the former
