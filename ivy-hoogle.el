@@ -39,6 +39,10 @@
   "Ivy Hoogle Appearance."
   :group 'convenience)
 
+(defcustom ivy-hoogle-program "hoogle"
+  "Hoogle executable to use."
+  :type 'file)
+
 (defcustom ivy-hoogle-delay-ms 200
   "Wait for more input this long before calling calling hoogle."
   :type 'integer)
@@ -391,8 +395,8 @@ up after the process."
   (setq ivy-hoogle--process-query query)
   (setq ivy-hoogle--process
         (apply 'async-start-process
-               "hoogle-process"
                "hoogle"
+               ivy-hoogle-program
                'ivy-hoogle--on-finish
                (ivy-hoogle--process-args query))))
 
@@ -404,8 +408,8 @@ up after the process."
 (defun ivy-hoogle--call-hoogle-sync (query)
   "Get the results for a query synchronously."
   (let ((process (apply 'async-start-process
-                        "hoogle"
-                        "hoogle"
+                        "hoogle-sync"
+                        ivy-hoogle-program
                         #'ivy-hoogle--call-hoogle-sync-set-candidates
                         (ivy-hoogle--process-args query))))
     (async-wait process)
