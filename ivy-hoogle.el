@@ -264,6 +264,8 @@ ellipses at the end."
   (get-text-property 0 'sources candidate))
 
 (defun ivy-hoogle--haskell-mode-fontify (do-fontify str default-face)
+  "Fontify STR using `haskell-mode' if it's available and DO-FONTIFY
+is `t'. Otherwise apply DEFAULT-FACE to STR."
   (if (or (not do-fontify)
           (null (require 'haskell-font-lock nil 'noerror)))
       (progn (font-lock-append-text-property 0 (length str) 'face default-face str)
@@ -650,14 +652,14 @@ link or a link to the definition that will pop in a new
           (t (shr-generic dom)))))
 
 (defun ivy-hoogle--make-url-link (text url)
-  "Insert `text' in the current buffer and turn it into a link to
-`url'."
+  "Insert TEXT in the current buffer and turn it into a link to
+URL."
   (let ((start (point)))
     (insert text)
     (ivy-hoogle--urlify start url)))
 
 (defun ivy-hoogle--urlify (start url)
-  "Attaches an external link to the text between `start' and the
+  "Attaches an external link to the text between START and the
 current point in the active buffer."
   (shr-urlify start url)
   (add-text-properties start (point)
@@ -676,7 +678,7 @@ activated."
   'action #'ivy-hoogle--follow-xref-link)
 
 (defun ivy-hoogle--make-xref-link (target)
-  "Insert `target' in the current buffer and make it into an xref
+  "Insert TARGET in the current buffer and make it into an xref
 link."
   (insert-text-button target
                       'type 'ivy-hoogle-xref-link
@@ -886,7 +888,7 @@ more details."
 
 ;;;###autoload
 (defun ivy-hoogle (&optional initial)
-  "Query Hoogle interactively using `ivy`."
+  "Query Hoogle interactively using `ivy'."
   (interactive)
   (let ((map (make-sparse-keymap))
         (ivy-dynamic-exhibit-delay-ms 0)
