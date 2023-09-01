@@ -52,50 +52,50 @@
   :type 'integer)
 
 (defcustom ivy-hoogle-use-haskell-fontify t
-  "When non-nil, use `haskell-mode' fontification to display
-candidates. If `haskell-font-lock' is unavailable, the value will
-be ignored."
+  "When non-nil, use `haskell-mode' fontification to display candidates.
+
+If `haskell-font-lock' is unavailable, the value is ignored."
   :type 'boolean)
 
 (defcustom ivy-hoogle-fontify-code-as-haskell t
-  "When non-nil, fontify code blocks as haskell using
-`haskell-mode'. Will only have effect if
-`ivy-hoogle-use-haskell-fontify' is non-nil."
+  "When non-nil, fontify code blocks as haskell using `haskell-mode'.
+
+Will only have effect if `ivy-hoogle-use-haskell-fontify' is non-nil."
   :type 'boolean)
 
 (defcustom ivy-hoogle-help-reserved-characters 10
-  "Reserve these many characters in the help window when displaying
-documentation for the selected candidate. The rendered
-documentation will span the width of the window minus the number
-of reserved characters."
+  "The number of characters to reserve in the help window displaying a candidate.
+
+The rendered documentation will span the width of the window
+minus the number of reserved characters."
   :type 'integer)
 
 (defcustom ivy-hoogle-help-max-width nil
-  "If not `nil', defines the maximum width of the documentation
-rendered in the help window. When `nil', the value of `shr-width'
-or, if it's not set, `shr-max-width' will be used. If the latter
-is not set either, the full width of the window minus
+  "When non-nil, maximum width a rendered candidate will use in the help window.
+
+When nil, the value of `shr-width' or, if it's not set,
+`shr-max-width' will be used.  If the latter is not set either,
+the full width of the window minus
 `ivy-hoogle-help-reserved-characters' characters will be used."
   :type '(choice (integer :tag "Fixed width in characters")
                  (const :tag "Use the full width of the window" nil)))
 
 (defface ivy-hoogle-candidate-source-face
   '((t :inherit shadow))
-  "Face used to display the candidate source (package and module if
-available)"
+  "The face used to display the candidate source package and module (when available)."
   :group 'ivy-hoogle-appearance)
 
 (defface ivy-hoogle-candidate-face
   '((t :inherit (fixed-pitch minibuffer-prompt)))
-  "Face used to display the candidate when
-`ivy-hoogle-use-haskell-fontify' is not `t'"
+  "The face used to display the candidate when `ivy-hoogle-use-haskell-fontify' is nil."
   :group 'ivy-hoogle-appearance)
 
 (defface ivy-hoogle-doc-code-face
   '((t :inherit (fixed-pitch font-lock-function-name-face)))
-  "Face used to display text in code blocks in the documentation
-buffer. Applied only if `ivy-hoogle-fontify-code-as-haskell' is
-`nil' or `haskell-mode' could not be found."
+  "The face used to display code blocks in the help window.
+
+Applied only if `ivy-hoogle-fontify-code-as-haskell' is nil or
+`haskell-mode' could not be loaded."
   :group 'ivy-hoogle-appearance)
 
 (defface ivy-hoogle-doc-code-background-face
@@ -108,52 +108,52 @@ buffer. Applied only if `ivy-hoogle-fontify-code-as-haskell' is
 
 (defface ivy-hoogle-doc-xref-link-face
   '((t :inherit (fixed-pitch font-lock-constant-face underline) :weight normal))
-  "Face used to display links to other functions the documentation
-buffer"
+  "The face used to display links to other functions the documentation buffer."
   :group 'ivy-hoogle-appearance)
 
 (cl-defstruct ivy-hoogle-source
-  "One source where a specific candidate can be found."
+  "One source location where a candidate is defined."
   (url
    nil
-   :documentation "A link to the candidate in this source")
+   :documentation "A link to the candidate in this source.")
   (package
    nil
-   :documentation "The name of the package where the candidate is defined")
+   :documentation "The name of the package where the candidate is defined.")
   (package-url
    nil
-   :documentation "The URL linking to the package")
+   :documentation "The URL linking to the package.")
   (module
    nil
-   :documentation "The name of the module where the candidate is defined")
+   :documentation "The name of the module where the candidate is defined.")
   (module-url
    nil
-   :documentation "The URL linking to the module"))
+   :documentation "The URL linking to the module."))
 
 (cl-defstruct ivy-hoogle-result
   "A Hoogle result."
   (item
    nil
-   :documentation "A string with the found candidate")
+   :documentation "A string with the found candidate.")
   (sources
    nil
    :documentation "A list of `ivy-hoogle-source' structures for
-  each module where the candidate can be found")
+  each module where the candidate is defined.")
   (doc-html
    nil
-   :documentation "The documentation for the found candidate with occasional html
+   :documentation "The documentation string for the candidate with occasional html
    tags."))
 
 (defun ivy-hoogle-result-url (result)
-  "Get the link to external documentation for a candidate."
+  "Get the URL to Haddock describing RESULT."
   (pcase (ivy-hoogle-result-sources result)
     (`(,head . ,_) (ivy-hoogle-source-url head))
     (_ nil)))
 
-(defmacro ivy-hoogle-define-candidate-properties (&rest names)
-  "Define properties that can be attached to a candidate. A
-candidate is the result of a query represented as a string where
-the properties are attached to it as text properties."
+(defmacro ivy-hoogle-define-candidate-properties (&rest properties)
+  "Define PROPERTIES that can be attached to a candidate.
+
+A candidate is the result of a query represented as a string
+where the properties are attached to it as text properties."
   (let ((result (mapcan (lambda (name)
                           (let ((fn-name (intern (concat "ivy-hoogle-candidate-" (symbol-name name)))))
                             `((defun ,fn-name (candidate)
@@ -163,48 +163,65 @@ the properties are attached to it as text properties."
                                 `(let ((tmp ,val))
                                    (progn (put-text-property 0 1 ',',name tmp ,x)
                                           tmp))))))
-                        names)))
+                        properties)))
     `(progn ,@result)))
 
 (ivy-hoogle-define-candidate-properties formatted result)
 
 (defun ivy-hoogle-make-candidate (result)
-  "Make a string candidate out of a query result. The original
-result is attached to the candidate as a text property."
+  "Make a candidate from RESULT.
+
+The original result is attached to the candidate as a text
+property."
   (let ((item (ivy-hoogle-result-item result)))
     (setf (ivy-hoogle-candidate-result item) result)
     item))
 
 (defun ivy-hoogle-candidate-p (candidate)
-  "Check whether the passed string looks like a valid candidate"
+  "Return non-nil if CANDIDATE is a valid ivy-hoogle candidate.
+
+Valid candidates are those created by `ivy-hoogle-make-candidate'."
   (not (null (ivy-hoogle-candidate-result candidate))))
 
 (defvar ivy-hoogle--timer nil
-  "When this timer fires is when we'll actually call hoogle.")
+  "When this timer fires, the hoogle process is started.
+
+The timer is set to `ivy-hoogle-delay-ms' milliseconds in the
+future every time the user updates the query.  So this prevents
+us of spawning a new hoogle process just to immediately terminate
+it once the query is updated.")
+
 (defvar ivy-hoogle--history nil
   "The history of queries is stored here.")
+
 (defvar ivy-hoogle--cache (make-hash-table :test 'equal)
-  "Fetched results are cached in this hash table for the duration
-of a single `ivy-hoogle' call. Once `ivy-hoogle' returns, the
-cache is cleaned up.")
+  "A cache of fetched results active for the duration of an `ivy-hoogle' call.
+
+Once `ivy-hoogle' returns, the cache is cleaned up.")
+
 (defvar ivy-hoogle--process-query nil
-  "The query to pass to hoogle process is stored here.")
+  "Stores the query to pass to the hoogle process.")
+
 (defvar ivy-hoogle--process nil
-  "Stores the async process interacting with the hoogle executable.")
+  "Stores the async process interacting with the hoogle CLI.")
+
 (defvar ivy-hoogle--sync-candidates nil
-  "When `ivy-hoogle--fetch-mode' is 'sync, the result of the query
-will be stored here.")
+  "When `ivy-hoogle--fetch-mode' is 'sync, the result of the query will be stored here.")
+
 (defvar ivy-hoogle--fetch-mode 'async
-  "Either 'async or 'sync. The latter will make ivy-hoogle--action
-fetch candidates synchronously.")
+  "Fetch mode (either 'async or 'sync).
+
+The latter will make `ivy-hoogle--action' fetch candidates
+synchronously.")
+
 (defvar-local ivy-hoogle--occur-initalized nil
-  "Buffer local variable set in occur buffers to indicate whether
-the buffer has already been initialized.")
+  "Set in occur buffers to indicate whether the buffer has already been initialized.")
 
 (defun ivy-hoogle--group-by (elems key-fn)
-  "Group elements of a list on the keys returned by the key
-function. Return the list of pairs (key . group) preserving the
-order of elements in the original list."
+  "Group ELEMS on the keys returned by the KEY-FN.
+
+Return the list of pairs (key . group) preserving the order of
+elements in ELEMS."
   (let ((groups (make-hash-table :test #'equal))
         (keys (mapcar key-fn elems)))
     (cl-loop for (key . elem) in (cl-mapcar #'cons keys elems)
@@ -220,8 +237,9 @@ order of elements in the original list."
              finally return (nreverse result))))
 
 (defun ivy-hoogle--format-sources (sources)
-  "Format sources grouped on the package name into a string of the
-form 'package1 Module1, Module2, package2 ..'"
+  "Format SOURCES grouped on the package name into a string.
+
+The result will be of the form 'package1 Module1, Module2, package2 ...'"
   (let ((sources-by-package (ivy-hoogle--group-by sources #'ivy-hoogle-source-package)))
     (cl-loop for (package . package-sources) in sources-by-package
              when package
@@ -232,10 +250,11 @@ form 'package1 Module1, Module2, package2 ..'"
              finally return (string-join result ", "))))
 
 (defun ivy-hoogle--group-results (results)
-  "Group identical results. Two results are considered identical if
-they have identical items and documentation. Return only unique
-results, but attach the sources that contributed into each one of
-them."
+  "Group identical results in RESULTS.
+
+Two results are considered identical if they have identical items
+and documentation.  Return only unique results, but attach the
+sources that contributed into each one of them."
   (let* ((key-fn (lambda (result)
                    (cons (ivy-hoogle-result-item result)
                          (ivy-hoogle-result-doc-html result))))
@@ -248,24 +267,29 @@ them."
                result))))
 
 (defun ivy-hoogle--shorten (str width)
-  "Truncate a string if it's longer than a certain width. Add
-ellipses at the end."
+  "Truncate STR to maximum WIDTH.
+
+Add ellipses at the end if the string was truncated."
   (let ((len (length str)))
     (cond ((>= width len) str)
           ((< width 10) "")
           (t (concat (substring str 0 (- width 1)) "…")))))
 
 (defun ivy-hoogle--display-candidate-set-sources (candidate sources)
-  "Attach the sources to a rendered candidate."
+  "Attach SOURCES to CANDIDATE."
   (put-text-property 0 1 'sources sources candidate))
 
 (defun ivy-hoogle--display-candidate-get-sources (candidate)
-  "Get sources from a rendered candidate."
+  "Get sources from CANDIDATE.
+
+Return the sources that were previously attached by
+`ivy-hoogle--display-candidate-get-sources'."
   (get-text-property 0 'sources candidate))
 
 (defun ivy-hoogle--haskell-mode-fontify (do-fontify str default-face)
-  "Fontify STR using `haskell-mode' if it's available and DO-FONTIFY
-is `t'. Otherwise apply DEFAULT-FACE to STR."
+  "Fontify STR using `haskell-mode' (if available) and DO-FONTIFY is t.
+
+Otherwise apply DEFAULT-FACE to STR."
   (if (or (not do-fontify)
           (null (require 'haskell-font-lock nil 'noerror)))
       (progn (font-lock-append-text-property 0 (length str) 'face default-face str)
@@ -276,8 +300,10 @@ is `t'. Otherwise apply DEFAULT-FACE to STR."
       (haskell-fontify-as-mode str 'haskell-mode))))
 
 (defun ivy-hoogle--display-candidate (candidate)
-  "Prepare a result to be displayed in the minibuffer. The item is
-fontified, the sources are formatted and attached to the result."
+  "Prepare CANDIDATE to be displayed in the minibuffer.
+
+The item is fontified, the sources are formatted and attached to
+the result."
   (let ((marked (member candidate ivy-marked-candidates))
         (result (ivy-hoogle-candidate-result candidate)))
     (if (null result)
@@ -296,9 +322,11 @@ fontified, the sources are formatted and attached to the result."
        (copy-sequence (ivy-hoogle-candidate-formatted candidate))))))
 
 (defun ivy-hoogle--format-candidate (width candidate)
-  "Format a candidate (as returned by
-`ivy-hoogle--display-candidate') to actually be displayed in the
-minibuffer."
+  "Format CANDIDATE to a string where WIDTH is the maximum width to use.
+
+CANDIDATE must be a result of a call to `ivy-hoogle--display-candidate'.
+
+The result is used to display CANDIDATE in the minibuffer."
   (let ((sources (ivy-hoogle--display-candidate-get-sources candidate)))
     (if (null sources)
         candidate
@@ -313,7 +341,7 @@ minibuffer."
                     (ivy--add-face sources 'ivy-hoogle-candidate-source-face))))))))
 
 (defun ivy-hoogle--format-candidates (candidates)
-  "Format candidates in the supplied list."
+  "Format CANDIDATES before displaying them in the minibuffer."
   (let ((width (- (window-width)
                   ;; leave one extra column on the right when running in the
                   ;; terminal, otherwise the candidates will have a
