@@ -128,7 +128,7 @@ Applied only if `ivy-hoogle-fontify-code-as-haskell' is nil or
   "The face used to display links to other functions the documentation buffer."
   :group 'ivy-hoogle-faces)
 
-(cl-defstruct ivy-hoogle-source
+(cl-defstruct ivy-hoogle--source
   "One source location where a candidate is defined."
   (url
    nil
@@ -146,27 +146,27 @@ Applied only if `ivy-hoogle-fontify-code-as-haskell' is nil or
    nil
    :documentation "The URL linking to the module."))
 
-(cl-defstruct ivy-hoogle-result
+(cl-defstruct ivy-hoogle--result
   "A Hoogle result."
   (item
    nil
    :documentation "A string with the found candidate.")
   (sources
    nil
-   :documentation "A list of `ivy-hoogle-source' structures for
+   :documentation "A list of `ivy-hoogle--source' structures for
   each module where the candidate is defined.")
   (doc-html
    nil
    :documentation "The documentation string for the candidate with occasional html
    tags."))
 
-(defun ivy-hoogle-result-url (result)
+(defun ivy-hoogle--result-url (result)
   "Get the URL to Haddock describing RESULT."
-  (pcase (ivy-hoogle-result-sources result)
-    (`(,head . ,_) (ivy-hoogle-source-url head))
+  (pcase (ivy-hoogle--result-sources result)
+    (`(,head . ,_) (ivy-hoogle--source-url head))
     (_ nil)))
 
-(defmacro ivy-hoogle-define-candidate-properties (&rest properties)
+(defmacro ivy-hoogle--define-candidate-properties (&rest properties)
   "Define PROPERTIES that can be attached to a candidate.
 
 A candidate is the result of a query represented as a string
@@ -183,21 +183,21 @@ where the properties are attached to it as text properties."
                         properties)))
     `(progn ,@result)))
 
-(ivy-hoogle-define-candidate-properties formatted result)
+(ivy-hoogle--define-candidate-properties formatted result)
 
-(defun ivy-hoogle-make-candidate (result)
+(defun ivy-hoogle--make-candidate (result)
   "Make a candidate from RESULT.
 
 The original result is attached to the candidate as a text
 property."
-  (let ((item (ivy-hoogle-result-item result)))
+  (let ((item (ivy-hoogle--result-item result)))
     (setf (ivy-hoogle-candidate-result item) result)
     item))
 
-(defun ivy-hoogle-candidate-p (candidate)
+(defun ivy-hoogle--candidate-p (candidate)
   "Return non-nil if CANDIDATE is a valid `ivy-hoogle' candidate.
 
-Valid candidates are those created by `ivy-hoogle-make-candidate'."
+Valid candidates are those created by `ivy-hoogle--make-candidate'."
   (not (null (ivy-hoogle-candidate-result candidate))))
 
 (defvar ivy-hoogle--timer nil
@@ -257,10 +257,10 @@ elements in ELEMS."
   "Format SOURCES grouped on the package name into a string.
 
 The result will be of the form 'package1 Module1, Module2, package2 ...'"
-  (let ((sources-by-package (ivy-hoogle--group-by sources #'ivy-hoogle-source-package)))
+  (let ((sources-by-package (ivy-hoogle--group-by sources #'ivy-hoogle--source-package)))
     (cl-loop for (package . package-sources) in sources-by-package
              when package
-             collect (let ((modules (mapcar #'ivy-hoogle-source-module package-sources)))
+             collect (let ((modules (mapcar #'ivy-hoogle--source-module package-sources)))
                        (setq modules (seq-remove #'null modules))
                        (string-join (cons package modules) " "))
              into result
@@ -273,14 +273,14 @@ Two results are considered identical if they have identical items
 and documentation.  Return only unique results, but attach the
 sources that contributed into each one of them."
   (let* ((key-fn (lambda (result)
-                   (cons (ivy-hoogle-result-item result)
-                         (ivy-hoogle-result-doc-html result))))
+                   (cons (ivy-hoogle--result-item result)
+                         (ivy-hoogle--result-doc-html result))))
          (groups (ivy-hoogle--group-by results key-fn)))
     (cl-loop for (_ . group) in groups
              collect
              (let ((result (car group))
-                   (sources (apply #'append (mapcar #'ivy-hoogle-result-sources group))))
-               (setf (ivy-hoogle-result-sources result) sources)
+                   (sources (apply #'append (mapcar #'ivy-hoogle--result-sources group))))
+               (setf (ivy-hoogle--result-sources result) sources)
                result))))
 
 (defun ivy-hoogle--shorten (str width)
@@ -326,8 +326,8 @@ the result."
     (if (null result)
         candidate
       (unless (ivy-hoogle-candidate-formatted candidate)
-        (let* ((item (ivy-hoogle-result-item result))
-               (sources (ivy-hoogle--format-sources (ivy-hoogle-result-sources result)))
+        (let* ((item (ivy-hoogle--result-item result))
+               (sources (ivy-hoogle--format-sources (ivy-hoogle--result-sources result)))
                (formatted
                 (ivy-hoogle--haskell-mode-fontify ivy-hoogle-use-haskell-fontify
                                                   item
@@ -390,13 +390,13 @@ The result is used to display CANDIDATE in the minibuffer."
          (package-url (gethash "url" package-obj))
          (doc-html (gethash "docs" parsed)))
     (when (and item url)
-      (let ((source (make-ivy-hoogle-source
+      (let ((source (make-ivy-hoogle--source
                      :url url
                      :module module
                      :module-url module-url
                      :package package
                      :package-url package-url)))
-        (make-ivy-hoogle-result
+        (make-ivy-hoogle--result
          :item item
          :doc-html doc-html
          :sources (list source))))))
@@ -416,7 +416,7 @@ The result is used to display CANDIDATE in the minibuffer."
              unless (or (string-prefix-p "--" line)
                         (string-prefix-p "No results found" line))
              collect (ivy-hoogle--parse-result line) into results
-             finally return (mapcar #'ivy-hoogle-make-candidate
+             finally return (mapcar #'ivy-hoogle--make-candidate
                                     (ivy-hoogle--group-results results)))))
 
 (defun ivy-hoogle--on-finish (process)
@@ -590,7 +590,7 @@ But do so only once `ivy-restrict-to-matches' was called."
 
 (defun ivy-hoogle--occur-function (candidates)
   "Render CANDIDATES in the occur buffer."
-  (setq candidates (cl-remove-if-not #'ivy-hoogle-candidate-p candidates))
+  (setq candidates (cl-remove-if-not #'ivy-hoogle--candidate-p candidates))
 
   (unless ivy-hoogle--occur-initalized
     (font-lock-mode -1)
@@ -792,10 +792,10 @@ DOC string may contain html tags and is rendered using `shr'."
   (let* ((shr-width (ivy-hoogle--render-width))
          (displayed (ivy-hoogle--display-candidate candidate))
          (result (ivy-hoogle-candidate-result candidate))
-         (sources (ivy-hoogle-result-sources result))
+         (sources (ivy-hoogle--result-sources result))
          (start (point)))
     (insert displayed)
-    (let ((button-url (ivy-hoogle-result-url result)))
+    (let ((button-url (ivy-hoogle--result-url result)))
       (when button-url
         (insert ?\n ?\n)
         (let ((button-start (point)))
@@ -805,7 +805,7 @@ DOC string may contain html tags and is rendered using `shr'."
     (ivy-hoogle--render-sources shr-width sources)
     ;; use the same font shr will use
     (add-face-text-property start (point) 'fixed-pitch)
-    (ivy-hoogle--render-doc (ivy-hoogle-result-doc-html result))))
+    (ivy-hoogle--render-doc (ivy-hoogle--result-doc-html result))))
 
 (defun ivy-hoogle--render-sources-nobreak-p ()
   "Break candidate sources on package bounaries.
@@ -824,7 +824,7 @@ Turns them into external links to the corresponding packages and
 modules on Hackage.
 
 WIDTH is the maximum width to use in characters."
-  (let ((sources-by-package (ivy-hoogle--group-by sources #'ivy-hoogle-source-package))
+  (let ((sources-by-package (ivy-hoogle--group-by sources #'ivy-hoogle--source-package))
         (start (point))
         (first t))
     (cl-loop for (package . package-sources) in sources-by-package
@@ -836,18 +836,18 @@ WIDTH is the maximum width to use in characters."
                (setq first nil)
                (let ((package-url
                       (cl-first (seq-remove #'null
-                                            (mapcar #'ivy-hoogle-source-package-url
+                                            (mapcar #'ivy-hoogle--source-package-url
                                                     package-sources)))))
                  (if package-url
                      (ivy-hoogle--make-url-link package package-url)
                    (insert package))
 
                  (cl-loop for source in package-sources
-                          when (and source (ivy-hoogle-source-module source))
+                          when (and source (ivy-hoogle--source-module source))
                           do
                           (insert " ")
-                          (let ((module (ivy-hoogle-source-module source))
-                                (module-url (ivy-hoogle-source-module-url source)))
+                          (let ((module (ivy-hoogle--source-module source))
+                                (module-url (ivy-hoogle--source-module-url source)))
                                 (if module-url
                                     (ivy-hoogle--make-url-link module module-url)
                                   (insert module)))))))
@@ -877,7 +877,7 @@ If CANDIDATE is a fake candidate like that returned by
   ;;
   ;; To work around we fetch the candidate using the internal candidate index
   ;; and list of candidates.
-  (unless (ivy-hoogle-candidate-p candidate)
+  (unless (ivy-hoogle--candidate-p candidate)
     (condition-case err
         (setq candidate
               (or (nth ivy--index ivy--all-candidates) candidate))
@@ -886,7 +886,7 @@ If CANDIDATE is a fake candidate like that returned by
                         (format "Couldn't fetch candidate: %s"
                                 (error-message-string err))))))
 
-  (if (not (ivy-hoogle-candidate-p candidate))
+  (if (not (ivy-hoogle--candidate-p candidate))
       ;; if a non-candidate got selected, like the informational "Updating" or
       ;; "No results", restart selection
       ;;
@@ -909,7 +909,7 @@ If CANDIDATE is a fake candidate like that returned by
         (ivy-hoogle--render-candidate candidate))
       (set-window-point (get-buffer-window) (point-min)))))
 
-(defun ivy-hoogle-occur ()
+(defun ivy-hoogle--occur ()
   "Show current candidates in the occur buffer.
 
 See `ivy-occur' for more details."
@@ -920,7 +920,7 @@ See `ivy-occur' for more details."
 (defun ivy-hoogle--browse-candidate (candidate)
   "Open documentation for CANDIDATE in the external browser."
   (let* ((result (ivy-hoogle-candidate-result candidate))
-         (url (ivy-hoogle-result-url result)))
+         (url (ivy-hoogle--result-url result)))
     (if url
         (progn
           (funcall browse-url-secondary-browser-function url)
@@ -931,7 +931,7 @@ See `ivy-occur' for more details."
   "Open documentation for the selected candidate in the external browser."
   (ivy-exit-with-action
    (lambda (candidate)
-     (if (not (ivy-hoogle-candidate-p candidate))
+     (if (not (ivy-hoogle--candidate-p candidate))
          ;; if a non-candidate got selected, like the informational "Updating" or
          ;; "No results", restart selection
          (ivy-resume)
@@ -960,7 +960,7 @@ Optional INITIAL is the initial query to use."
                       (cl-loop for key in (where-is-internal command ivy-minibuffer-map)
                                do (define-key map key replacement))))
       ;; `ivy-occur' requires some special handling
-      (rebind 'ivy-occur #'ivy-hoogle-occur))
+      (rebind 'ivy-occur #'ivy-hoogle--occur))
     (ivy-read
      "Hoogle: "
      #'ivy-hoogle--candidates
