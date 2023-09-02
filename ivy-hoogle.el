@@ -223,10 +223,10 @@ Once `ivy-hoogle' returns, the cache is cleaned up.")
   "Stores the async process interacting with the hoogle CLI.")
 
 (defvar ivy-hoogle--sync-candidates nil
-  "When `ivy-hoogle--fetch-mode' is \'sync, query results will be stored here.")
+  "When `ivy-hoogle--fetch-mode' is \\='sync, query results will be stored here.")
 
 (defvar ivy-hoogle--fetch-mode 'async
-  "Fetch mode (either \'async or \'sync).
+  "Fetch mode (either \\='async or \\='sync).
 
 The latter will make `ivy-hoogle--action' fetch candidates
 synchronously.")
