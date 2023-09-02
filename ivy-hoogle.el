@@ -41,40 +41,50 @@
 (require 'seq)
 (require 'shr)
 
-(defgroup ivy-hoogle-appearance nil
-  "Ivy Hoogle Appearance."
+(defgroup ivy-hoogle nil
+  "Ivy interface to Hoogle, the Haskell API search engine."
   :group 'convenience)
+
+(defgroup ivy-hoogle-faces nil
+  "Faces used by `ivy-hoogle'."
+  :group 'ivy-hoogle)
 
 (defcustom ivy-hoogle-program "hoogle"
   "Hoogle executable to use."
-  :type 'file)
+  :type 'file
+  :group 'ivy-hoogle)
 
 (defcustom ivy-hoogle-delay-ms 200
-  "Wait for more input this long before calling calling hoogle."
-  :type 'integer)
+  "Wait for more input this long before calling hoogle."
+  :type 'integer
+  :group 'ivy-hoogle)
 
 (defcustom ivy-hoogle-num-candidates 20
   "The maximum number of candidates to fetch for each query."
-  :type 'integer)
+  :type 'integer
+  :group 'ivy-hoogle)
 
 (defcustom ivy-hoogle-use-haskell-fontify t
   "When non-nil, use `haskell-mode' fontification to display candidates.
 
 If `haskell-font-lock' is unavailable, the value is ignored."
-  :type 'boolean)
+  :type 'boolean
+  :group 'ivy-hoogle)
 
 (defcustom ivy-hoogle-fontify-code-as-haskell t
   "When non-nil, fontify code blocks as haskell using `haskell-mode'.
 
 Will only have effect if `ivy-hoogle-use-haskell-fontify' is non-nil."
-  :type 'boolean)
+  :type 'boolean
+  :group 'ivy-hoogle)
 
 (defcustom ivy-hoogle-help-reserved-characters 10
   "The number of characters to reserve in the help window displaying a candidate.
 
 The rendered documentation will span the width of the window
 minus the number of reserved characters."
-  :type 'integer)
+  :type 'integer
+  :group 'ivy-hoogle)
 
 (defcustom ivy-hoogle-help-max-width nil
   "When non-nil, maximum width a rendered candidate will use in the help window.
@@ -84,17 +94,18 @@ When nil, the value of `shr-width' or, if it's not set,
 the full width of the window minus
 `ivy-hoogle-help-reserved-characters' characters will be used."
   :type '(choice (integer :tag "Fixed width in characters")
-                 (const :tag "Use the full width of the window" nil)))
+                 (const :tag "Use the full width of the window" nil))
+  :group 'ivy-hoogle)
 
 (defface ivy-hoogle-candidate-source-face
   '((t :inherit shadow))
   "The face used to display the candidate source package and module (when available)."
-  :group 'ivy-hoogle-appearance)
+  :group 'ivy-hoogle-faces)
 
 (defface ivy-hoogle-candidate-face
   '((t :inherit (fixed-pitch minibuffer-prompt)))
   "The face used to display the candidate when `ivy-hoogle-use-haskell-fontify' is nil."
-  :group 'ivy-hoogle-appearance)
+  :group 'ivy-hoogle-faces)
 
 (defface ivy-hoogle-doc-code-face
   '((t :inherit (fixed-pitch font-lock-function-name-face)))
@@ -102,7 +113,7 @@ the full width of the window minus
 
 Applied only if `ivy-hoogle-fontify-code-as-haskell' is nil or
 `haskell-mode' could not be loaded."
-  :group 'ivy-hoogle-appearance)
+  :group 'ivy-hoogle-faces)
 
 (defface ivy-hoogle-doc-code-background-face
   '((((class color) (background light))
@@ -110,12 +121,12 @@ Applied only if `ivy-hoogle-fontify-code-as-haskell' is nil or
     (((class color) (background dark))
      :background "#333333" :extend t))
   "Background applied to code blocks in the documentation buffer."
-  :group 'ivy-hoogle-appearance)
+  :group 'ivy-hoogle-faces)
 
 (defface ivy-hoogle-doc-xref-link-face
   '((t :inherit (fixed-pitch font-lock-constant-face underline) :weight normal))
   "The face used to display links to other functions the documentation buffer."
-  :group 'ivy-hoogle-appearance)
+  :group 'ivy-hoogle-faces)
 
 (cl-defstruct ivy-hoogle-source
   "One source location where a candidate is defined."
