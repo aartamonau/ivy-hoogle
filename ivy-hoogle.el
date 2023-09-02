@@ -184,7 +184,7 @@ property."
     item))
 
 (defun ivy-hoogle-candidate-p (candidate)
-  "Return non-nil if CANDIDATE is a valid ivy-hoogle candidate.
+  "Return non-nil if CANDIDATE is a valid `ivy-hoogle' candidate.
 
 Valid candidates are those created by `ivy-hoogle-make-candidate'."
   (not (null (ivy-hoogle-candidate-result candidate))))
