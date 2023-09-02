@@ -99,12 +99,12 @@ the full width of the window minus
 
 (defface ivy-hoogle-candidate-source-face
   '((t :inherit shadow))
-  "The face used to display the candidate source package and module (when available)."
+  "The face used to display the candidate's source package and module."
   :group 'ivy-hoogle-faces)
 
 (defface ivy-hoogle-candidate-face
   '((t :inherit (fixed-pitch minibuffer-prompt)))
-  "The face used to display the candidate when `ivy-hoogle-use-haskell-fontify' is nil."
+  "The face used to display the candidate when Haskell fontification is disabled."
   :group 'ivy-hoogle-faces)
 
 (defface ivy-hoogle-doc-code-face
@@ -223,16 +223,16 @@ Once `ivy-hoogle' returns, the cache is cleaned up.")
   "Stores the async process interacting with the hoogle CLI.")
 
 (defvar ivy-hoogle--sync-candidates nil
-  "When `ivy-hoogle--fetch-mode' is 'sync, the result of the query will be stored here.")
+  "When `ivy-hoogle--fetch-mode' is \'sync, query results will be stored here.")
 
 (defvar ivy-hoogle--fetch-mode 'async
-  "Fetch mode (either 'async or 'sync).
+  "Fetch mode (either \'async or \'sync).
 
 The latter will make `ivy-hoogle--action' fetch candidates
 synchronously.")
 
 (defvar-local ivy-hoogle--occur-initalized nil
-  "Set in occur buffers to indicate whether the buffer has already been initialized.")
+  "Set in occur buffers after the buffer is initialized.")
 
 (defun ivy-hoogle--group-by (elems key-fn)
   "Group ELEMS on the keys returned by the KEY-FN.
@@ -256,7 +256,7 @@ elements in ELEMS."
 (defun ivy-hoogle--format-sources (sources)
   "Format SOURCES grouped on the package name into a string.
 
-The result will be of the form 'package1 Module1, Module2, package2 ...'"
+The result will be of the form \"package1 Module1, Module2, package2 ...\""
   (let ((sources-by-package (ivy-hoogle--group-by sources #'ivy-hoogle--source-package)))
     (cl-loop for (package . package-sources) in sources-by-package
              when package
@@ -585,8 +585,8 @@ But do so only once `ivy-restrict-to-matches' was called."
   ;; I could not find any other way to achieve this behavior but to rely on
   ;; implementation details of ivy.
   (if (ivy-state-dynamic-collection ivy-last)
-      str
-    (ivy--highlight-default str)))
+      query
+    (ivy--highlight-default query)))
 
 (defun ivy-hoogle--occur-function (candidates)
   "Render CANDIDATES in the occur buffer."
