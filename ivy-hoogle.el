@@ -352,7 +352,7 @@ The result is used to display CANDIDATE in the minibuffer."
             candidates)))
 
 (defun ivy-hoogle--format-function (candidates)
-  "Format all candidates into a single multi-line string."
+  "Format CANDIDATES into a single multi-line string."
   (let ((formatted (ivy-hoogle--format-candidates candidates)))
     (ivy--format-function-generic
      (lambda (str) (ivy--add-face str 'ivy-current-match))
@@ -361,7 +361,7 @@ The result is used to display CANDIDATE in the minibuffer."
      "\n")))
 
 (defun ivy-hoogle--parse-result (line)
-  "Parse a result from a single line of output."
+  "Parse one LINE of output into a result."
   (let* ((parsed (json-parse-string line))
          (item (gethash "item" parsed))
          (url (gethash "url" parsed))
@@ -385,14 +385,14 @@ The result is used to display CANDIDATE in the minibuffer."
          :sources (list source))))))
 
 (defun ivy-hoogle--process-args (query)
-  "Command-line flags and arguments to pass to the hoogle executable."
+  "Command-line flags and arguments to pass to the hoogle CLI for QUERY."
   `("search"
     "--count" ,(number-to-string ivy-hoogle-num-candidates)
     "--jsonl"
     ,query))
 
 (defun ivy-hoogle--process-read-candidates (process)
-  "Read query results from the hoogle process."
+  "Read query results from PROCESS."
   (let* ((output (with-current-buffer (process-buffer process) (buffer-string)))
          (lines (string-lines output t)))
     (cl-loop for line in lines
@@ -403,8 +403,7 @@ The result is used to display CANDIDATE in the minibuffer."
                                     (ivy-hoogle--group-results results)))))
 
 (defun ivy-hoogle--on-finish (process)
-  "Read results from the hoogle process, update minibuffer, clean
-up after the process."
+  "Read results from PROCESS, update minibuffer, clean up."
   (let ((candidates (or (ivy-hoogle--process-read-candidates process)
                         (ivy-hoogle--no-results))))
     (ivy-hoogle--cache-candidates ivy-hoogle--process-query candidates)
@@ -419,7 +418,7 @@ up after the process."
     (ivy-hoogle--cleanup-process)))
 
 (defun ivy-hoogle--start-hoogle (query)
-  "Start a hoogle process for a query."
+  "Start a new hoogle process for QUERY."
   (ivy-hoogle--cleanup-timer)
   (ivy-hoogle--cleanup-process)
   (setq ivy-hoogle--process-query query)
@@ -431,12 +430,12 @@ up after the process."
                (ivy-hoogle--process-args query))))
 
 (defun ivy-hoogle--call-hoogle-sync-set-candidates (process)
-  "Store the results of a synchronous query."
+  "Read results from PROCESS and store them in `ivy-hoogle--sync-candidates'."
   (let ((candidates (ivy-hoogle--process-read-candidates process)))
     (setq ivy-hoogle--sync-candidates candidates)))
 
 (defun ivy-hoogle--call-hoogle-sync (query)
-  "Get the results for a query synchronously."
+  "Fetch results for QUERY synchronously."
   (let ((process (apply 'async-start-process
                         "hoogle-sync"
                         ivy-hoogle-program
@@ -448,7 +447,7 @@ up after the process."
     ivy-hoogle--sync-candidates))
 
 (defun ivy-hoogle--queue-update (query)
-  "Request an asynchronous update for a query."
+  "Request an asynchronous update for QUERY."
   (ivy-hoogle--cleanup-timer)
   (ivy-hoogle--cleanup-process)
   (setq ivy-hoogle--timer
@@ -463,8 +462,9 @@ up after the process."
   (ivy-hoogle--cleanup-process))
 
 (defun ivy-hoogle--cleanup nil
-  "Cleanup after an invocation of `ivy-hoogle'. Clears the cache,
-disarms the timer, kills the update process."
+  "Clean up after an invocation of `ivy-hoogle'.
+
+Clears the cache, disarms the timer, kills the update process."
   (clrhash ivy-hoogle--cache)
   (ivy-hoogle--cancel-update))
 
@@ -483,17 +483,19 @@ disarms the timer, kills the update process."
     (setq ivy-hoogle--process nil)))
 
 (defun ivy-hoogle--cached-candidates (query)
-  "Fetch the cached candidates for a given query."
+  "Fetch the cached candidates for QUERY."
   (gethash query ivy-hoogle--cache))
 
 (defun ivy-hoogle--cache-candidates (query candidates)
-  "Update the cached candidates for a given query."
+  "Cached CANDIDATES for QUERY."
   (puthash query candidates ivy-hoogle--cache))
 
 (defun ivy-hoogle--candidates (query)
-  "Called by `ivy-read' whenever the user updates the query. The
-function will check for a cached result first. If no such result
-is found, the function will queue an update. After there's no
+  "Fetch candidates for QUERY.
+
+Called by `ivy-read' whenever the user updates the query.  The
+function will check for a cached result first.  If no such result
+is found, the function will queue an update.  After there's no
 more input for more than `ivy-hoogle-delay-ms' milliseconds, a
 hoogle process is started and, when it's done, the results are
 displayed in the minibuffer."
@@ -542,14 +544,16 @@ displayed in the minibuffer."
   '("No results"))
 
 (defun ivy-hoogle--re-builder (str)
-  "Custom regex builder function so we can associate
+  "Build a regex sequence from STR.
+
+We need a custom regex builder function so we can associate
 `ivy-hoogle--highlight-function' with it."
   (ivy--regex-plus str))
 
-(defun ivy-hoogle--highlight-function (str)
-  "Highlights the parts of a rendered candidate that match the
-current query. But it only does so after
-`ivy-restrict-to-matches' was called."
+(defun ivy-hoogle--highlight-function (query)
+  "Highlight the parts of a rendered candidate that match QUERY.
+
+But do so only once `ivy-restrict-to-matches' was called."
   ;; When `ivy-restrict-to-matches' is called, it resets dynamic-collection to
   ;; false. This implementation detail is used to determine whether to
   ;; highlight the matching bits in the output:
@@ -568,7 +572,7 @@ current query. But it only does so after
     (ivy--highlight-default str)))
 
 (defun ivy-hoogle--occur-function (candidates)
-  "Renders candidates in an occur buffer."
+  "Render CANDIDATES in the occur buffer."
   (setq candidates (cl-remove-if-not #'ivy-hoogle-candidate-p candidates))
 
   (unless ivy-hoogle--occur-initalized
@@ -617,13 +621,15 @@ current query. But it only does so after
     (forward-line 1)))
 
 (defun ivy-hoogle--render-code (dom)
-  "Renders <pre> and <tt> tags as code. If both
+  "Render DOM as code.
+
+This is called for <pre> and <tt> tags.  If both
 `ivy-hoogle-use-haskell-fontify' and
 `ivy-hoogle-fontify-code-as-haskell' are non-nil, uses
-`haskell-mode' to fontify the code block. Otherwise, simply adds
-`ivy-hoogle-doc-code-face' to the contents of the code block. If
+`haskell-mode' to fontify the code block.  Otherwise, simply adds
+`ivy-hoogle-doc-code-face' to the contents of the code block.  If
 it looks like the tag is standalone (not surrounded by text on
-the same line). In either case,
+the same line).  In either case,
 `ivy-hoogle-doc-code-background-face' is applied to the rendered
 code block."
   (let ((start (point))
@@ -655,9 +661,11 @@ code block."
                                       'face 'ivy-hoogle-doc-code-background-face))))
 
 (defun ivy-hoogle--render-tag-a (dom)
-  "A custom renderer for <a> tags. Will create either an external
-link or a link to the definition that will pop in a new
-`ivy-hoogle' session depending on the contents of the tag."
+  "Render DOM as a link.
+
+Called for <a> tags.  It will either create an external link or a
+link to the definition that will pop in a new `ivy-hoogle'
+session depending on the contents of the tag."
   (let* ((start (point))
          (target (pcase (dom-children dom)
                    ((and `(,head)
@@ -680,23 +688,22 @@ link or a link to the definition that will pop in a new
           (t (shr-generic dom)))))
 
 (defun ivy-hoogle--make-url-link (text url)
-  "Insert TEXT in the current buffer and turn it into a link to
-URL."
+  "Insert TEXT in the current buffer and turn it into a link to URL."
   (let ((start (point)))
     (insert text)
     (ivy-hoogle--urlify start url)))
 
 (defun ivy-hoogle--urlify (start url)
-  "Attaches an external link to the text between START and the
-current point in the active buffer."
+  "Attach URL to the text between START and the current point in the active buffer."
   (shr-urlify start url)
   (add-text-properties start (point)
                        (list 'action #'ivy-hoogle--follow-url
                              'keymap button-map)))
 
 (defun ivy-hoogle--follow-url (button)
-  "An action that is called when a link to an external URL is
-activated."
+  "Follow the URL associated with BUTTON.
+
+It is called when a link to an external URL is activated."
   (goto-char (button-start button))
   (save-excursion
     (shr-browse-url t)))
@@ -706,26 +713,23 @@ activated."
   'action #'ivy-hoogle--follow-xref-link)
 
 (defun ivy-hoogle--make-xref-link (target)
-  "Insert TARGET in the current buffer and make it into an xref
-link."
+  "Insert TARGET in the current buffer and turn it into an xref link."
   (insert-text-button target
                       'type 'ivy-hoogle-xref-link
                       'ivy-hoogle-query target
                       'help-echo (format "Search hoogle for \"%s\"" target)))
 
 (defun ivy-hoogle--follow-xref-link (button)
-  "An action that is called when a link to a different haskell
-definition is activated. Will start a new `ivy-hoogle' session
-for the user to select the specific definition."
+  "Pop a new `ivy-hoogle` session for the definition from BUTTON."
   (let ((query (get-text-property button 'ivy-hoogle-query)))
     (if (not query)
         (message "No ivy-hoogle xref link at point")
       (ivy-hoogle query))))
 
 (defun ivy-hoogle--render-doc (doc)
-  "Render the candidate's documentation in the current buffer. The
-documentation string may contain html tags and is rendered using
-`shr'."
+  "Render DOC in the current buffer.
+
+DOC string may contain html tags and is rendered using `shr'."
   (let (;; render using a fixed-pitch font by default; unlike setting
         ;; `shr-use-fonts' to `nil', it doesn't prevent `shr' form using italic
         ;; font when necessary
@@ -767,7 +771,7 @@ documentation string may contain html tags and is rendered using
     width))
 
 (defun ivy-hoogle--render-candidate (candidate)
-  "Render the candidate in the current buffer."
+  "Render CANDIDATE in the current buffer."
   (let* ((shr-width (ivy-hoogle--render-width))
          (displayed (ivy-hoogle--display-candidate candidate))
          (result (ivy-hoogle-candidate-result candidate))
@@ -787,9 +791,7 @@ documentation string may contain html tags and is rendered using
     (ivy-hoogle--render-doc (ivy-hoogle-result-doc-html result))))
 
 (defun ivy-hoogle--render-sources-nobreak-p ()
-  "A predicate that, when used with `fill-region', allows breaking
-only on commas that separate packages, but does not break modules
-names.
+  "Break candidate sources on package bounaries.
 
 See `ivy-hoogle--render-sources'."
   (save-excursion
@@ -799,9 +801,12 @@ See `ivy-hoogle--render-sources'."
       (not (looking-at ", ")))))
 
 (defun ivy-hoogle--render-sources (width sources)
-  "Render candidate source packages and modules in the help buffer
-and turn them into external links to the corresponding packages and
-modules on Hackage."
+  "Render candidate SOURCES in the help buffer.
+
+Turns them into external links to the corresponding packages and
+modules on Hackage.
+
+WIDTH is the maximum width to use in characters."
   (let ((sources-by-package (ivy-hoogle--group-by sources #'ivy-hoogle-source-package))
         (start (point))
         (first t))
@@ -845,9 +850,10 @@ modules on Hackage."
       (fill-region start (point)))))
 
 (defun ivy-hoogle--action (candidate)
-  "Open a help window with the documentation for the passed
-candidate. If the candidate is a fake candidate like that
-returned by `ivy-hoogle--no-results', restart `ivy-hoogle'."
+  "Open a help window with the documentation for CANDIDATE.
+
+If CANDIDATE is a fake candidate like that returned by
+`ivy-hoogle--no-results', restart `ivy-hoogle'."
   ;; Workaround: when the candidate is selected using ivy-avy, all text
   ;; properties are stripped from it. since all of our metadata lives in text
   ;; properties, we would just throw such candidate away and restart ivy.
@@ -873,8 +879,7 @@ returned by `ivy-hoogle--no-results', restart `ivy-hoogle'."
     (ivy-hoogle--show-doc candidate)))
 
 (defun ivy-hoogle--show-doc (candidate)
-  "Display a help window with the documentation for the passed
-candidate."
+  "Display a help window with the documentation for CANDIDATE."
   (let ((buffer-name "*Help*"))
     (help-setup-xref `(ivy-hoogle--show-doc ,candidate) nil)
     (with-current-buffer (get-buffer-create buffer-name)
@@ -888,14 +893,15 @@ candidate."
       (set-window-point (get-buffer-window) (point-min)))))
 
 (defun ivy-hoogle-occur ()
-  "Show current candidates in an occur buffer. See `ivy-occur' for
-more details."
+  "Show current candidates in the occur buffer.
+
+See `ivy-occur' for more details."
   (interactive)
   (let ((ivy-hoogle--fetch-mode 'sync))
     (ivy-occur)))
 
 (defun ivy-hoogle--browse-candidate (candidate)
-  "Open documentation for the candidate in the external browser."
+  "Open documentation for CANDIDATE in the external browser."
   (let* ((result (ivy-hoogle-candidate-result candidate))
          (url (ivy-hoogle-result-url result)))
     (if url
@@ -905,7 +911,7 @@ more details."
       (message "No URL found"))))
 
 (defun ivy-hoogle--alt-done ()
-  "Open documentation for the selected candidate in the browser."
+  "Open documentation for the selected candidate in the external browser."
   (ivy-exit-with-action
    (lambda (candidate)
      (if (not (ivy-hoogle-candidate-p candidate))
@@ -916,7 +922,9 @@ more details."
 
 ;;;###autoload
 (defun ivy-hoogle (&optional initial)
-  "Query Hoogle interactively using `ivy'."
+  "Query Hoogle interactively using `ivy'.
+
+Optional INITIAL is the initial query to use."
   (interactive)
   (let ((map (make-sparse-keymap))
         (ivy-dynamic-exhibit-delay-ms 0)
