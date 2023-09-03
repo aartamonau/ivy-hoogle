@@ -151,6 +151,11 @@ Applied only if `ivy-hoogle-fontify-code-as-haskell' is nil or
   (item
    nil
    :documentation "A string with the found candidate.")
+  (unique-count
+   nil
+   :documentation "An integer to disambiguate candidates that are named identically,
+but have different documentation. This is needed because `ivy'
+does not deal with duplicates in the candidate list very well.")
   (sources
    nil
    :documentation "A list of `ivy-hoogle--source' structures for
@@ -190,9 +195,18 @@ where the properties are attached to it as text properties."
 
 The original result is attached to the candidate as a text
 property."
-  (let ((item (ivy-hoogle--result-item result)))
-    (setf (ivy-hoogle-candidate-result item) result)
-    item))
+  (let ((candidate (ivy-hoogle--result-item result))
+        (unique-count (ivy-hoogle--result-unique-count result)))
+    (setf (ivy-hoogle-candidate-result candidate) result)
+
+    ;; Workaround: add a suffix consisting of spaces to make candidates
+    ;; unique, without candidates being unique, certain ivy features like
+    ;; marking/unmarking, resuming a session won't work correctly
+    (when (and unique-count (> unique-count 0))
+      (setq candidate
+            (concat candidate
+                    (make-string unique-count ?\ ))))
+    candidate))
 
 (defun ivy-hoogle--candidate-p (candidate)
   "Return non-nil if CANDIDATE is a valid `ivy-hoogle' candidate.
@@ -282,6 +296,22 @@ sources that contributed into each one of them."
                    (sources (apply #'append (mapcar #'ivy-hoogle--result-sources group))))
                (setf (ivy-hoogle--result-sources result) sources)
                result))))
+
+(defun ivy-hoogle--uniquify (results)
+  "Add unique counters to RESULTS where necessary.
+
+Results that have the same item will get assigned counters making
+each occurrence unique.
+
+RESULTS must have already grouped using `ivy-hoogle--group-results'."
+  (let ((counts (make-hash-table :test #'equal)))
+    (cl-loop for result in results
+             do
+             (let* ((item (ivy-hoogle--result-item result))
+                    (count (or (gethash item counts) 0)))
+               (setf (ivy-hoogle--result-unique-count result) count)
+               (puthash item (+ 1 count) counts))
+             finally return results)))
 
 (defun ivy-hoogle--shorten (str width)
   "Truncate STR to maximum WIDTH.
@@ -398,6 +428,7 @@ The result is used to display CANDIDATE in the minibuffer."
                      :package-url package-url)))
         (make-ivy-hoogle--result
          :item item
+         :unique-count 0
          :doc-html doc-html
          :sources (list source))))))
 
@@ -417,7 +448,7 @@ The result is used to display CANDIDATE in the minibuffer."
                         (string-prefix-p "No results found" line))
              collect (ivy-hoogle--parse-result line) into results
              finally return (mapcar #'ivy-hoogle--make-candidate
-                                    (ivy-hoogle--group-results results)))))
+                                    (ivy-hoogle--uniquify (ivy-hoogle--group-results results))))))
 
 (defun ivy-hoogle--on-finish (process)
   "Read results from PROCESS, update minibuffer, clean up."
@@ -982,7 +1013,6 @@ Optional INITIAL is the initial query to use."
         (ivy-hoogle thing)
       (user-error "No symbol at point"))))
 
-;; TODO: ivy-resume does not restore the position properly (try Control.Monad.Identity)
 (ivy-configure 'ivy-hoogle
   :display-transformer-fn #'ivy-hoogle--display-candidate
   :format-fn #'ivy-hoogle--format-function
