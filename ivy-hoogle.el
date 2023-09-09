@@ -968,6 +968,18 @@ See `ivy-occur' for more details."
          (ivy-resume)
        (ivy-hoogle--browse-candidate candidate)))))
 
+(defun ivy-hoogle--init ()
+  (when (eq this-command 'ivy-resume)
+    ;; `ivy-read' has special logic around `ivy-resume' that reuses cached
+    ;; results from the previous session. It also unconditionally sets
+    ;; `ivy--old-cands' to be equal to only those candidates that match the
+    ;; initial input (the query from the previous session). This in turn makes
+    ;; marking any candidates outside that set impossible.
+    ;;
+    ;; To work around, set the current command to `ivy-hoogle'. This forces
+    ;; `ivy-read' to refetch the results, and so marking works as expected.
+    (setq this-command 'ivy-hoogle)))
+
 ;;;###autoload
 (defun ivy-hoogle (&optional initial)
   "Query Hoogle interactively using `ivy'.
@@ -1017,7 +1029,8 @@ Optional INITIAL is the initial query to use."
   :display-transformer-fn #'ivy-hoogle--display-candidate
   :format-fn #'ivy-hoogle--format-function
   :occur #'ivy-hoogle--occur-function
-  :alt-done-fn #'ivy-hoogle--alt-done)
+  :alt-done-fn #'ivy-hoogle--alt-done
+  :init-fn #'ivy-hoogle--init)
 
 ;; the highlight function can only be overridden by associating it with the
 ;; regex building function directly
