@@ -969,6 +969,7 @@ See `ivy-occur' for more details."
        (ivy-hoogle--browse-candidate candidate)))))
 
 (defun ivy-hoogle--init ()
+  "Initialize `ivy-hoogle' session."
   (when (eq this-command 'ivy-resume)
     ;; `ivy-read' has special logic around `ivy-resume' that reuses cached
     ;; results from the previous session. It also unconditionally sets
