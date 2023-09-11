@@ -331,7 +331,13 @@ Add ellipses at the end if the string was truncated."
 
 Return the sources that were previously attached by
 `ivy-hoogle--display-candidate-get-sources'."
-  (get-text-property 0 'sources candidate))
+  (get-text-property
+   ;; When `ivy' marks a candidate, it destructive modifies it prepending
+   ;; `ivy-mark-prefix' to it. This affects where we should look for the
+   ;; sources.
+   (if (member candidate ivy-marked-candidates) (length ivy-mark-prefix) 0)
+   'sources
+   candidate))
 
 (defun ivy-hoogle--haskell-mode-fontify (do-fontify str default-face)
   "Fontify STR using `haskell-mode' (if available) and DO-FONTIFY is t.
