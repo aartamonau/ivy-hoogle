@@ -760,7 +760,10 @@ session depending on the contents of the tag."
 It is called when a link to an external URL is activated."
   (goto-char (button-start button))
   (save-excursion
-    (shr-browse-url t)))
+    (shr-browse-url t)
+    (let ((url (shr-url-at-point nil)))
+      (when url
+        (message "Opened %s" url)))))
 
 (define-button-type 'ivy-hoogle-xref-link
   'face 'ivy-hoogle-doc-xref-link-face
