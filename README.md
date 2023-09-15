@@ -1,19 +1,19 @@
 # Ivy-hoogle
 
-`ivy-hoogle` is a package for [Emacs][1] that provides an [Ivy][2]-based
-interface to [Hoogle][3].
+`ivy-hoogle` is a package for [Emacs][emacs] that provides an
+[Ivy][swiper]-based interface to [Hoogle][hoogle].
 
-[1]: https://www.gnu.org/software/emacs/
-[2]: https://oremacs.com/swiper/
-[3]: https://github.com/ndmitchell/hoogle/
+[emacs]: https://www.gnu.org/software/emacs/
+[swiper]: https://oremacs.com/swiper/
+[hoogle]: https://github.com/ndmitchell/hoogle/
 
 ## Prerequisites
 
 At present, `ivy-hoogle` only supports querying using the Hoogle [CLI
-utility][4]. As such, the `hoogle` executable needs to be in
+utility][hoogle-cli]. As such, the `hoogle` executable needs to be in
 `PATH`. Alternatively, `ivy-hoogle-program` can be customized to point to it.
 
-[4]: https://github.com/ndmitchell/hoogle#command-line-version
+[hoogle-cli]: https://github.com/ndmitchell/hoogle#command-line-version
 
 ## Installation
 
@@ -50,7 +50,7 @@ The package currently provides two commands.
 
      *   `ivy-avy` (`C-'` by default)
 
-         Allows choosing the candidate using [avy][5].
+         Allows choosing the candidate using [avy][avy].
 
      *   Multi-selection (`ivy-mark` and `ivy-unmark`, `C-o` and then `m` or
          `u` by default)
@@ -80,7 +80,7 @@ The package currently provides two commands.
                    ("C-. H" . ivy-hoogle-thing-at-point)))
      ```
 
-[5]: https://github.com/abo-abo/avy
+[avy]: https://github.com/abo-abo/avy
 
 ## Customization
 
