@@ -50,7 +50,7 @@ The package currently provides two commands.
 
      *   `ivy-avy` (`C-'` by default)
 
-         Allows choosing the candidate using `avy`.
+         Allows choosing the candidate using [avy][5].
 
      *   Multi-selection (`ivy-mark` and `ivy-unmark`, `C-o` and then `m` or
          `u` by default)
@@ -79,6 +79,8 @@ The package currently provides two commands.
        :bind (:map haskell-mode-map
                    ("C-. H" . ivy-hoogle-thing-at-point)))
      ```
+
+[5]: https://github.com/abo-abo/avy
 
 ## Customization
 
