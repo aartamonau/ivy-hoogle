@@ -17,6 +17,24 @@ utility][hoogle-cli]. As such, the `hoogle` executable needs to be in
 
 ## Installation
 
+### From Git
+
+#### Using the Emacs package system
+
+```elisp
+(package-vc-install
+  '(ivy-hoogle :url "https://github.com/aartamonau/ivy-hoogle.git"))
+```
+
+#### Using [straight.el][straight]
+
+```elisp
+(straight-use-package
+  '(ivy-hoogle :type git :host github :repo "aartamonau/ivy-hoogle"))
+```
+
+[straight]: https://github.com/radian-software/straight.el
+
 ## Commands
 
 The package currently provides two commands.
