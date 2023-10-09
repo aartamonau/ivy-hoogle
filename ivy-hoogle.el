@@ -339,6 +339,10 @@ Return the sources that were previously attached by
    'sources
    candidate))
 
+;; Since haskell-font-lock is loaded dynamically, declare
+;; haskell-fontify-as-mode to avoid byte/native-compilation warnings.
+(declare-function haskell-fontify-as-mode "haskell-font-lock" (text mode))
+
 (defun ivy-hoogle--haskell-mode-fontify (do-fontify str default-face)
   "Fontify STR using `haskell-mode' (if available) and DO-FONTIFY is t.
 
@@ -347,10 +351,7 @@ Otherwise apply DEFAULT-FACE to STR."
           (null (require 'haskell-font-lock nil 'noerror)))
       (progn (font-lock-append-text-property 0 (length str) 'face default-face str)
              str)
-    ;; work around a native compilation warning about
-    ;; `haskell-fontify-as-mode' not known to be defined
-    (when (fboundp 'haskell-fontify-as-mode)
-      (haskell-fontify-as-mode str 'haskell-mode))))
+    (haskell-fontify-as-mode str 'haskell-mode)))
 
 (defun ivy-hoogle--display-candidate (candidate)
   "Prepare CANDIDATE to be displayed in the minibuffer.
