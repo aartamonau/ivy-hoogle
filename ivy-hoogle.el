@@ -1030,10 +1030,14 @@ Optional INITIAL is the initial query to use."
 (defun ivy-hoogle-thing-at-point nil
   "Query Hoogle for the symbol at point."
   (interactive)
-  (let ((thing (thing-at-point 'symbol t)))
-    (if thing
-        (ivy-hoogle thing)
-      (user-error "No symbol at point"))))
+  (ivy-hoogle
+   (or (thing-at-point 'symbol t)
+       ;; Operators like >>= are not symbols, so fallback to a more general
+       ;; category.
+       (thing-at-point 'sexp t)
+       ;; If everything else fails, start a session with an empty initial
+       ;; input.
+       "")))
 
 (ivy-configure 'ivy-hoogle
   :display-transformer-fn #'ivy-hoogle--display-candidate
