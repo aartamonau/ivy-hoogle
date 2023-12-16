@@ -408,11 +408,18 @@ The result is used to display CANDIDATE in the minibuffer."
 (defun ivy-hoogle--format-function (candidates)
   "Format CANDIDATES into a single multi-line string."
   (let ((formatted (ivy-hoogle--format-candidates candidates)))
+    ;; this follows the behavior of ivy-format-function-line: the entire line
+    ;; corresponding to the selected candidate is highlighted
     (ivy--format-function-generic
-     (lambda (str) (ivy--add-face str 'ivy-current-match))
-     (lambda (str) str)
+     (lambda (str)
+       (setq str (concat str "\n"))
+       ;; Don't highlight "No results"
+       (if (ivy-hoogle--candidate-p str)
+           (ivy--add-face str 'ivy-current-match)
+         str))
+     (lambda (str) (concat str "\n"))
      formatted
-     "\n")))
+     "")))
 
 (defun ivy-hoogle--parse-result (line)
   "Parse one LINE of output into a result."
