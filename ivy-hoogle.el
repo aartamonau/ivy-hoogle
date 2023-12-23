@@ -485,11 +485,14 @@ The result is used to display CANDIDATE in the minibuffer."
   (ivy-hoogle--cleanup-process)
   (setq ivy-hoogle--process-query query)
   (setq ivy-hoogle--process
-        (apply 'async-start-process
-               "hoogle"
-               ivy-hoogle-program
-               'ivy-hoogle--on-finish
-               (ivy-hoogle--process-args query))))
+        ;; prevent async from prompting for a password based on matching the
+        ;; command output against somewhat a arbitrary regex
+        (let ((async-prompt-for-password nil))
+          (apply 'async-start-process
+                 "hoogle"
+                 ivy-hoogle-program
+                 'ivy-hoogle--on-finish
+                 (ivy-hoogle--process-args query)))))
 
 (defun ivy-hoogle--call-hoogle-sync-set-candidates (process)
   "Read results from PROCESS and store them in `ivy-hoogle--sync-candidates'."
