@@ -180,6 +180,7 @@ where the properties are attached to it as text properties.
 For each property, this macro defines a getter function named
 ivy-hoogle-candidate-<property> as well as a setter of the same
 name that can be assigned to using `setf`."
+  (declare (debug (&rest symbolp)))
   (let ((result (mapcan (lambda (name)
                           (let ((fn-name (intern (concat "ivy-hoogle-candidate-" (symbol-name name)))))
                             `((defun ,fn-name (candidate)
