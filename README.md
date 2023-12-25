@@ -100,5 +100,6 @@ The package currently provides two commands.
 
 [avy]: https://github.com/abo-abo/avy
 
-## Customization
+## Screenshot
 
+![](screen.png)
