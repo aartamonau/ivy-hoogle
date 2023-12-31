@@ -484,20 +484,26 @@ The result is used to display CANDIDATE in the minibuffer."
     (ivy-update-candidates candidates)
     (ivy-hoogle--cleanup-process)))
 
+(defun ivy-hoogle--start-async-process (name query finish-func)
+  "Start an async hoogle process named NAME for query QUERY.
+
+Call FINISH-FUNC with the process when done."
+  ;; prevent async from prompting for a password based on matching the
+  ;; command output against somewhat a arbitrary regex
+  (let ((async-prompt-for-password nil))
+    (apply 'async-start-process
+           name
+           ivy-hoogle-program
+           finish-func
+           (ivy-hoogle--process-args query))))
+
 (defun ivy-hoogle--start-hoogle (query)
   "Start a new hoogle process for QUERY."
   (ivy-hoogle--cleanup-timer)
   (ivy-hoogle--cleanup-process)
   (setq ivy-hoogle--process-query query)
   (setq ivy-hoogle--process
-        ;; prevent async from prompting for a password based on matching the
-        ;; command output against somewhat a arbitrary regex
-        (let ((async-prompt-for-password nil))
-          (apply 'async-start-process
-                 "hoogle"
-                 ivy-hoogle-program
-                 'ivy-hoogle--on-finish
-                 (ivy-hoogle--process-args query)))))
+        (ivy-hoogle--start-async-process "hoogle" query #'ivy-hoogle--on-finish)))
 
 (defun ivy-hoogle--call-hoogle-sync-set-candidates (process)
   "Read results from PROCESS and store them in `ivy-hoogle--sync-candidates'."
@@ -506,11 +512,8 @@ The result is used to display CANDIDATE in the minibuffer."
 
 (defun ivy-hoogle--call-hoogle-sync (query)
   "Fetch results for QUERY synchronously."
-  (let ((process (apply 'async-start-process
-                        "hoogle-sync"
-                        ivy-hoogle-program
-                        #'ivy-hoogle--call-hoogle-sync-set-candidates
-                        (ivy-hoogle--process-args query))))
+  (let ((process (ivy-hoogle--start-async-process
+                  "hoogle-sync" query #'ivy-hoogle--call-hoogle-sync-set-candidates)))
     (async-wait process)
     (delete-process process)
     (kill-buffer (process-buffer process))
