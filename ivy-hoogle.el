@@ -1017,16 +1017,17 @@ Optional INITIAL is the initial query to use."
   (interactive)
   (let ((map (make-sparse-keymap))
         (ivy-dynamic-exhibit-delay-ms 0)
-        ;; ivy calls `read-from-minibuffer' that adds the selected candidate
-        ;; in the history; but then ivy itself also adds the entered text;
+        ;; Ivy calls `read-from-minibuffer' that adds the selected candidate
+        ;; to history. But then ivy itself also adds the entered query to
+        ;; history.
         ;;
-        ;; it makes for a confusing experience; essentially, there'll be
-        ;; duplicates in the history, but then ivy's attempt at deduplicating
-        ;; the history also won't work, because the candidate and the input
-        ;; are likely not to be equal
+        ;; It makes for a confusing experience. Essentially, there'll be
+        ;; duplicates in the history. Ivy attempts deduplicating the history
+        ;; entries, but this also won't work, because the candidate and the
+        ;; input are likely not to be equal.
         ;;
-        ;; setting `history-add-new-input' to `nil' tells
-        ;; `read-from-minibuffer' not to update the history
+        ;; Setting `history-add-new-input' to `nil' tells
+        ;; `read-from-minibuffer' not to update the history.
         (history-add-new-input nil))
     (cl-flet ((rebind (command replacement)
                       (cl-loop for key in (where-is-internal command ivy-minibuffer-map)
