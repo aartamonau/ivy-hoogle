@@ -815,7 +815,7 @@ DOC string may contain html tags and is rendered using `shr'."
            (a . ivy-hoogle--render-tag-a))))
     (insert doc)
     (goto-char start)
-    (cl-loop while (< (point) (point-max))
+    (cl-loop until (eobp)
              do (progn (forward-paragraph)
                        (insert "<p/>" ?\n)))
     (shr-render-region start (point))))
