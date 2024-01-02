@@ -29,7 +29,8 @@
 ;; querying Hoogle, the Haskell API search engine, using `ivy-read'-based
 ;; interface.
 ;;
-;; See README.md for further details.
+;; See https://github.com/aartamonau/ivy-hoogle/blob/0.1.0/README.md for
+;; further details.
 
 ;;; Code:
 
