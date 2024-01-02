@@ -700,11 +700,9 @@ This is called for <pre> and <tt> tags.  If both
 `ivy-hoogle-use-haskell-fontify' and
 `ivy-hoogle-fontify-code-as-haskell' are non-nil, uses
 `haskell-mode' to fontify the code block.  Otherwise, simply adds
-`ivy-hoogle-doc-code-face' to the contents of the code block.  If
-it looks like the tag is standalone (not surrounded by text on
-the same line).  In either case,
-`ivy-hoogle-doc-code-background-face' is applied to the rendered
-code block."
+`ivy-hoogle-doc-code-face' to the contents of the code block.  In
+either case, `ivy-hoogle-doc-code-background-face' is applied to
+the rendered code block."
   (let ((start (point))
         (inline (not (looking-at "^\s*$"))))
     (cl-flet ((insert-fontified (fn)
