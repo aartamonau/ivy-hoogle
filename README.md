@@ -17,6 +17,12 @@ utility][hoogle-cli]. As such, the `hoogle` executable needs to be in
 
 ## Installation
 
+### MELPA
+
+`ivy-hoogle` is available on [MELPA][melpa].
+
+[melpa]: https://melpa.org/#/getting-started
+
 ### From Git
 
 #### Using the Emacs package system
