@@ -4,7 +4,7 @@
 
 ;; Author: Aliaksei Artamonau <aliaksiej.artamonau@gmail.com>
 ;; URL: https://github.com/aartamonau/ivy-hoogle
-;; Version: 0.1.0
+;; Version: 0.1.1
 ;; Package-Requires: ((emacs "28.1") (async "1.9") (ivy "0.13.2"))
 ;; Keywords: matching haskell hoogle
 
@@ -29,7 +29,7 @@
 ;; querying Hoogle, the Haskell API search engine, using `ivy-read'-based
 ;; interface.
 ;;
-;; See https://github.com/aartamonau/ivy-hoogle/blob/0.1.0/README.md for
+;; See https://github.com/aartamonau/ivy-hoogle/blob/0.1.1/README.md for
 ;; further details.
 
 ;;; Code:
