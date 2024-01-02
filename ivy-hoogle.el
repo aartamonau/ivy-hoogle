@@ -489,9 +489,9 @@ The result is used to display CANDIDATE in the minibuffer."
 
 Call FINISH-FUNC with the process when done."
   ;; prevent async from prompting for a password based on matching the
-  ;; command output against somewhat a arbitrary regex
+  ;; command output against a somewhat arbitrary regex
   (let ((async-prompt-for-password nil))
-    (apply 'async-start-process
+    (apply #'async-start-process
            name
            ivy-hoogle-program
            finish-func
